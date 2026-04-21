@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>AR Tile Visualizer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+  }
+
+  canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* ── Landing screen ── */
+  #landing {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #0a0a0a 0%, #1a1008 50%, #0a0a0a 100%);
+    z-index: 100;
+    gap: 0;
+  }
+
+  .landing-icon {
+    font-size: 72px;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 0 30px #c8922a88);
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+
+  .landing-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f0d080;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .landing-sub {
+    font-size: 14px;
+    color: #8a7a5a;
+    margin-bottom: 48px;
+    letter-spacing: 1px;
+  }
+
+  .compat-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff0f;
+    border: 1px solid #ffffff18;
+    border-radius: 24px;
+    padding: 8px 16px;
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  .compat-badge .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    animation: pulse-green 1.5s infinite;
+  }
+
+  @keyframes pulse-green {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+
+  #start-btn {
+    background: linear-gradient(135deg, #c8922a, #f0d080, #c8922a);
+    background-size: 200% 200%;
+    color: #1a0e00;
+    border: none;
+    border-radius: 50px;
+    padding: 18px 48px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    animation: shimmer 3s linear infinite;
+    box-shadow: 0 8px 32px #c8922a55;
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  #start-btn:active { transform: scale(.96); box-shadow: 0 4px 16px #c8922a33; }
+
+  @keyframes shimmer {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .note {
+    margin-top: 24px;
+    font-size: 11px;
+    color: #555;
+    text-align: center;
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  /* ── HUD overlay ── */
+  #hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+  }
+
+  /* Reticle ring */
+  #reticle-hint {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 60px;
+    border: 2px solid #f0d08099;
+    border-radius: 50%;
+    animation: spin-ring 4s linear infinite;
+    transition: opacity .4s;
+  }
+
+  #reticle-hint::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid #f0d08044;
+    border-radius: 50%;
+  }
+
+  @keyframes spin-ring {
+    0%   { transform: translate(-50%,-50%) rotate(0deg); }
+    100% { transform: translate(-50%,-50%) rotate(360deg); }
+  }
+
+  /* Status pill */
+  #status {
+    position: absolute;
+    top: 32px; left: 50%;
+    transform: translateX(-50%);
+    background: #000000cc;
+    backdrop-filter: blur(12px);
+    border: 1px solid #f0d08033;
+    border-radius: 24px;
+    padding: 10px 20px;
+    color: #f0d080;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-align: center;
+    white-space: nowrap;
+    transition: opacity .4s;
+  }
+
+  /* Tile picker strip */
+  #tile-picker {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    pointer-events: all;
+  }
+
+  .tile-thumb {
+    width: 52px; height: 52px;
+    border-radius: 10px;
+    border: 2px solid #ffffff33;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
+
+  /* Bottom controls */
+  #controls {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    pointer-events: all;
+  }
+
+  .ctrl-btn {
+    background: #000000cc;
+    backdrop-filter: blur(12px);
+    border: 1px solid #ffffff22;
+    border-radius: 50px;
+    padding: 14px 28px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background .2s, border-color .2s, transform .15s;
+    white-space: nowrap;
+  }
+
+  .ctrl-btn:active { transform: scale(.94); }
+  .ctrl-btn.primary { background: #c8922acc; border-color: #f0d080aa; color: #fff8e0; }
+
+  /* Size slider */
+  #size-control {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: all;
+  }
+
+  #size-label {
+    color: #f0d08099;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 6px;
+    height: 140px;
+    background: #ffffff22;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #f0d080;
+    box-shadow: 0 0 8px #c8922a88;
+  }
+
+  /* Not supported message */
+  #not-supported {
+    position: fixed;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a0a;
+    color: #fff;
+    z-index: 200;
+    gap: 16px;
+    text-align: center;
+    padding: 32px;
+  }
+
+  #not-supported h2 { color: #f0d080; font-size: 22px; }
+  #not-supported p  { color: #888; font-size: 14px; line-height: 1.6; max-width: 300px; }
+  #not-supported .steps { background: #ffffff08; border-radius: 12px; padding: 20px; max-width: 320px; text-align: left; }
+  #not-supported .steps li { color: #aaa; font-size: 13px; line-height: 2; }
+</style>
+</head>
+<body>
+
+<!-- Landing -->
+<div id="landing">
+  <div class="landing-icon">🪟</div>
+  <div class="landing-title">AR Tile Visualizer</div>
+  <div class="landing-sub">See tiles on your real floor</div>
+  <div class="compat-badge">
+    <div class="dot"></div>
+    <span>Requires Android Chrome or iOS Safari 15+</span>
+  </div>
+  <button id="start-btn" onclick="startAR()">START AR</button>
+  <p class="note">Point your camera at the floor and move slowly. Tap the floor to place tiles.</p>
+</div>
+
+<!-- Not supported -->
+<div id="not-supported">
+  <h2>WebXR Not Available</h2>
+  <p>Your browser doesn't support WebXR AR. Try the following:</p>
+  <div class="steps">
+    <ul>
+      <li>📱 Open in <strong>Chrome on Android</strong></li>
+      <li>🔗 Must be served over <strong>HTTPS</strong></li>
+      <li>🔧 Or enable <code>chrome://flags → WebXR</code></li>
+      <li>🍎 iOS: Safari 15.4+ with WebXR flag enabled</li>
+    </ul>
+  </div>
+</div>
+
+<!-- AR canvas -->
+<div id="canvas-container"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="reticle-hint"></div>
+  <div id="status">Move phone slowly over the floor…</div>
+
+  <!-- Tile style picker -->
+  <div id="tile-picker">
+    <div class="tile-thumb active" data-idx="0" style="background:
+      repeating-linear-gradient(0deg,#2a1a0a 0px,#2a1a0a 1px,transparent 1px,transparent 30px),
+      repeating-linear-gradient(90deg,#2a1a0a 0px,#2a1a0a 1px,transparent 1px,transparent 30px),
+      linear-gradient(135deg,#c8922a,#f0d080,#a06010);" title="Gold Mosaic"></div>
+    <div class="tile-thumb" data-idx="1" style="background:
+      repeating-linear-gradient(0deg,#555 0px,#555 1px,transparent 1px,transparent 32px),
+      repeating-linear-gradient(90deg,#555 0px,#555 1px,transparent 1px,transparent 32px),
+      linear-gradient(135deg,#ccc,#e8e8e8,#aaa);" title="Marble White"></div>
+    <div class="tile-thumb" data-idx="2" style="background:
+      repeating-linear-gradient(0deg,#111 0px,#111 1px,transparent 1px,transparent 28px),
+      repeating-linear-gradient(90deg,#111 0px,#111 1px,transparent 1px,transparent 28px),
+      linear-gradient(135deg,#1a1a1a,#333,#222);" title="Charcoal Slate"></div>
+    <div class="tile-thumb" data-idx="3" style="background:
+      repeating-linear-gradient(0deg,#8a5a2a 0px,#8a5a2a 1px,transparent 1px,transparent 24px),
+      repeating-linear-gradient(90deg,#8a5a2a 0px,#8a5a2a 1px,transparent 1px,transparent 24px),
+      linear-gradient(135deg,#c87941,#e8a060,#a05020);" title="Terracotta"></div>
+    <div class="tile-thumb" data-idx="4" style="background:
+      repeating-linear-gradient(45deg,#1a3a1a 0px,#1a3a1a 1px,transparent 1px,transparent 22px),
+      repeating-linear-gradient(-45deg,#1a3a1a 0px,#1a3a1a 1px,transparent 1px,transparent 22px),
+      linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a);" title="Forest Green"></div>
+  </div>
+
+  <div id="size-control">
+    <span id="size-label">Size</span>
+    <input type="range" id="tile-size-slider" min="1" max="10" value="3" step="1"/>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn" onclick="resetAR()">↺ Reset</button>
+    <button class="ctrl-btn primary" id="place-btn" onclick="placeTile()">TAP TO PLACE</button>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ── State ──────────────────────────────────────────────────────────────────
+let renderer, scene, camera;
+let xrSession = null;
+let xrRefSpace = null;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+
+let reticle;           // floating reticle mesh
+let floorMesh = null;  // placed tile mesh
+let floorPlaced = false;
+let currentTileIdx = 0;
+let tileSizeMeters = 0.3;
+
+const TILE_COLORS = [
+  { base: 0xc8922a, line: 0x2a1a0a },   // Gold
+  { base: 0xe0e0e0, line: 0x888888 },   // Marble
+  { base: 0x282828, line: 0x111111 },   // Charcoal
+  { base: 0xd0804a, line: 0x8a4820 },   // Terracotta
+  { base: 0x3a7a3a, line: 0x1a3a1a },   // Forest
+];
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+async function startAR() {
+  if (!navigator.xr) { showNotSupported(); return; }
+
+  const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+  if (!supported) { showNotSupported(); return; }
+
+  document.getElementById('landing').style.display = 'none';
+  initThree();
+
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay', 'light-estimation'],
+      domOverlay: { root: document.getElementById('hud') }
+    });
+  } catch (e) {
+    // hit-test might not be available; try without
+    try {
+      xrSession = await navigator.xr.requestSession('immersive-ar', {
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.getElementById('hud') }
+      });
+    } catch(e2) { showNotSupported(); return; }
+  }
+
+  renderer.xr.setReferenceSpaceType('local');
+  await renderer.xr.setSession(xrSession);
+
+  xrSession.addEventListener('end', onSessionEnd);
+  document.getElementById('hud').style.display = 'block';
+
+  renderer.setAnimationLoop(onXRFrame);
+  setupUI();
+}
+
+window.startAR = startAR;
+
+function initThree() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera();
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  renderer.shadowMap.enabled = true;
+
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  // Ambient + directional light
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+  dir.position.set(1, 3, 2);
+  scene.add(dir);
+
+  // Reticle — shows where floor was detected
+  const reticleGeo = new THREE.RingGeometry(0.08, 0.1, 32);
+  reticleGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  const reticleMat = new THREE.MeshBasicMaterial({ color: 0xf0d080, side: THREE.DoubleSide });
+  reticle = new THREE.Mesh(reticleGeo, reticleMat);
+  reticle.matrixAutoUpdate = false;
+  reticle.visible = false;
+  scene.add(reticle);
+}
+
+// ── Build tile texture on canvas ──────────────────────────────────────────
+function makeTileTexture(idx, tileSize) {
+  const c = document.createElement('canvas');
+  const px = 256;
+  c.width = c.height = px;
+  const ctx = c.getContext('2d');
+  const col = TILE_COLORS[idx];
+
+  const hex = n => '#' + n.toString(16).padStart(6, '0');
+
+  // Background gradient
+  const grd = ctx.createLinearGradient(0, 0, px, px);
+  grd.addColorStop(0,   hex(col.base));
+  grd.addColorStop(0.5, hex(Math.min(0xffffff, col.base + 0x202020)));
+  grd.addColorStop(1,   hex(Math.max(0, col.base - 0x101010)));
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, px, px);
+
+  // Grout lines
+  ctx.strokeStyle = hex(col.line);
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(px/2, 0); ctx.lineTo(px/2, px);
+  ctx.moveTo(0, px/2); ctx.lineTo(px, px/2);
+  // outer border
+  ctx.rect(1, 1, px-2, px-2);
+  ctx.stroke();
+
+  // Subtle inner highlight
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(4, 4, px/2 - 6, px/2 - 6);
+  ctx.fillRect(px/2 + 2, 4, px/2 - 6, px/2 - 6);
+  ctx.fillRect(4, px/2 + 2, px/2 - 6, px/2 - 6);
+  ctx.fillRect(px/2 + 2, px/2 + 2, px/2 - 6, px/2 - 6);
+  ctx.globalAlpha = 1.0;
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+// ── Build floor mesh ───────────────────────────────────────────────────────
+function buildFloorMesh(position, sizeM) {
+  if (floorMesh) { scene.remove(floorMesh); floorMesh.geometry.dispose(); floorMesh.material.dispose(); }
+
+  const tex = makeTileTexture(currentTileIdx, tileSizeMeters);
+  const repeatCount = sizeM / tileSizeMeters;
+  tex.repeat.set(repeatCount, repeatCount);
+
+  const geo = new THREE.PlaneGeometry(sizeM, sizeM, 1, 1);
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    roughness: 0.6,
+    metalness: 0.1,
+    side: THREE.DoubleSide,
+  });
+
+  floorMesh = new THREE.Mesh(geo, mat);
+  floorMesh.rotation.x = -Math.PI / 2;
+  floorMesh.position.copy(position);
+  floorMesh.receiveShadow = true;
+  scene.add(floorMesh);
+}
+
+// ── Place tile at reticle ─────────────────────────────────────────────────
+function placeTile() {
+  if (!reticle.visible) return;
+
+  const pos = new THREE.Vector3();
+  pos.setFromMatrixPosition(reticle.matrix);
+
+  const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.5;
+  buildFloorMesh(pos, sizeM);
+
+  floorPlaced = true;
+  setStatus('✓ Floor locked — move around to view!');
+  document.getElementById('reticle-hint').style.opacity = '0';
+  document.getElementById('place-btn').textContent = '✓ PLACED';
+}
+
+window.placeTile = placeTile;
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function resetAR() {
+  if (floorMesh) { scene.remove(floorMesh); floorMesh = null; }
+  floorPlaced = false;
+  reticle.visible = true;
+  document.getElementById('reticle-hint').style.opacity = '1';
+  document.getElementById('place-btn').textContent = 'TAP TO PLACE';
+  setStatus('Move phone slowly over the floor…');
+}
+
+window.resetAR = resetAR;
+
+// ── XR frame loop ──────────────────────────────────────────────────────────
+function onXRFrame(time, frame) {
+  if (!frame) return;
+
+  const session = frame.session;
+
+  // Request hit-test source once
+  if (!hitTestSourceRequested) {
+    session.requestReferenceSpace('viewer').then(viewerSpace => {
+      session.requestHitTestSource({ space: viewerSpace }).then(src => {
+        hitTestSource = src;
+      }).catch(() => {
+        setStatus('Hit-test unavailable — tap approximate floor area');
+      });
+    });
+    hitTestSourceRequested = true;
+  }
+
+  xrRefSpace = renderer.xr.getReferenceSpace();
+
+  // Hit test
+  if (hitTestSource) {
+    const results = frame.getHitTestResults(hitTestSource);
+    if (results.length > 0 && !floorPlaced) {
+      const hit = results[0];
+      const pose = hit.getPose(xrRefSpace);
+      if (pose) {
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+        setStatus('Floor detected — tap PLACE!');
+      }
+    } else if (!floorPlaced) {
+      reticle.visible = false;
+      setStatus('Move phone slowly over the floor…');
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+
+function onSessionEnd() {
+  hitTestSource = null;
+  hitTestSourceRequested = false;
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('landing').style.display = 'flex';
+}
+
+// ── UI wiring ──────────────────────────────────────────────────────────────
+function setupUI() {
+  // Tile picker
+  document.querySelectorAll('.tile-thumb').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tile-thumb').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      currentTileIdx = parseInt(el.dataset.idx);
+      if (floorMesh) {
+        // Rebuild with new tile style
+        const pos = floorMesh.position.clone();
+        const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.5;
+        buildFloorMesh(pos, sizeM);
+      }
+    });
+  });
+
+  // Size slider
+  document.getElementById('tile-size-slider').addEventListener('input', e => {
+    const sizeM = parseFloat(e.target.value) * 0.5;
+    if (floorMesh) {
+      const pos = floorMesh.position.clone();
+      buildFloorMesh(pos, sizeM);
+    }
+  });
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('status');
+  if (el) el.textContent = msg;
+}
+
+function showNotSupported() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('not-supported').style.display = 'flex';
+}
+
+window.addEventListener('resize', () => {
+  if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
