@@ -16,7 +16,7 @@
     background: linear-gradient(160deg, #0a0a0a 0%, #1a1008 50%, #0a0a0a 100%);
     z-index: 100; gap: 0;
   }
-  .landing-icon { font-size: 72px; margin-bottom: 16px; filter: drop-shadow(0 0 30px #c8922a88); animation: float 3s ease-in-out infinite; }
+  .landing-icon { font-size: 72px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
   @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   .landing-title { font-size: 28px; font-weight: 700; color: #f0d080; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
   .landing-sub { font-size: 14px; color: #8a7a5a; margin-bottom: 48px; letter-spacing: 1px; }
@@ -26,7 +26,7 @@
     font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
     cursor: pointer; animation: shimmer 3s linear infinite; box-shadow: 0 8px 32px #c8922a55;
   }
-  @keyframes shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+  @keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
   .note { margin-top: 24px; font-size: 11px; color: #555; text-align: center; line-height: 1.6; max-width: 280px; }
 
   #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
@@ -44,7 +44,7 @@
     width: 60px; height: 60px; border: 2px solid #f0d08099; border-radius: 50%;
     animation: spin-ring 4s linear infinite; transition: opacity .4s;
   }
-  @keyframes spin-ring { 0% { transform: translate(-50%,-50%) rotate(0deg); } 100% { transform: translate(-50%,-50%) rotate(360deg); } }
+  @keyframes spin-ring { 0%{transform:translate(-50%,-50%) rotate(0deg)} 100%{transform:translate(-50%,-50%) rotate(360deg)} }
 
   #tile-picker {
     position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
@@ -52,8 +52,7 @@
   }
   .tile-thumb {
     width: 52px; height: 52px; border-radius: 10px; border: 2px solid #ffffff33;
-    cursor: pointer; overflow: hidden; transition: border-color .2s, transform .2s;
-    background-size: cover; background-position: center;
+    cursor: pointer; transition: border-color .2s, transform .2s;
   }
   .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
 
@@ -66,7 +65,7 @@
     -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
     width: 6px; height: 140px; background: #ffffff22; border-radius: 3px; outline: none; cursor: pointer;
   }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; box-shadow: 0 0 8px #c8922a88; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
 
   #opacity-control {
     position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
@@ -123,11 +122,11 @@
   <div id="status">Move phone slowly over the floor…</div>
 
   <div id="tile-picker">
-    <div class="tile-thumb active" data-idx="0" style="background:linear-gradient(135deg,#c8922a,#f0d080,#a06010)" title="Gold"></div>
-    <div class="tile-thumb" data-idx="1" style="background:linear-gradient(135deg,#ccc,#e8e8e8,#aaa)" title="Marble"></div>
-    <div class="tile-thumb" data-idx="2" style="background:linear-gradient(135deg,#1a1a1a,#333,#222)" title="Charcoal"></div>
-    <div class="tile-thumb" data-idx="3" style="background:linear-gradient(135deg,#c87941,#e8a060,#a05020)" title="Terracotta"></div>
-    <div class="tile-thumb" data-idx="4" style="background:linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a)" title="Green"></div>
+    <div class="tile-thumb active" data-idx="0" style="background:linear-gradient(135deg,#c8922a,#f0d080,#a06010)"></div>
+    <div class="tile-thumb" data-idx="1" style="background:linear-gradient(135deg,#ccc,#e8e8e8,#aaa)"></div>
+    <div class="tile-thumb" data-idx="2" style="background:linear-gradient(135deg,#1a1a1a,#333,#222)"></div>
+    <div class="tile-thumb" data-idx="3" style="background:linear-gradient(135deg,#c87941,#e8a060,#a05020)"></div>
+    <div class="tile-thumb" data-idx="4" style="background:linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a)"></div>
   </div>
 
   <div id="size-control">
@@ -137,7 +136,7 @@
 
   <div id="opacity-control">
     <span id="opacity-label">Blend</span>
-    <input type="range" id="opacity-slider" min="20" max="100" value="85" step="5"/>
+    <input type="range" id="opacity-slider" min="20" max="100" value="80" step="5"/>
   </div>
 
   <div id="controls">
@@ -154,211 +153,197 @@
 import * as THREE from 'three';
 
 let renderer, scene, camera;
-let xrSession = null;
-let hitTestSource = null;
+let xrSession      = null;
+let hitTestSource  = null;
 let hitTestSourceRequested = false;
 let reticle;
-let floorAnchor = null;   // THREE.Group — its position/rotation never changes after placement
-let floorMesh = null;
+let floorGroup = null;   // world-anchored container — never moves after placement
+let floorMesh  = null;
 let floorPlaced = false;
 let currentTileIdx = 0;
-let tileSizeMeters = 0.3;
-let tileOpacity = 0.85;
+let tileOpacity    = 0.80;
 
-// Stores the WORLD-SPACE position+rotation captured at placement time
-let placedPosition = new THREE.Vector3();
-let placedQuaternion = new THREE.Quaternion();
+// Raw col-major Float32Array of the hit-test pose — captured every frame
+let latestHitMatrix = null;
 
 const TILES = [
-  { name:'Gold',       base:'#c8a84b', grout:'#6b4c1e', sheen:0.35 },
-  { name:'Marble',     base:'#ddd8d0', grout:'#9a9590', sheen:0.55 },
-  { name:'Charcoal',   base:'#2e2e2e', grout:'#111111', sheen:0.20 },
-  { name:'Terracotta', base:'#c97b4b', grout:'#7a3e1e', sheen:0.15 },
+  { name:'Gold',       base:'#c8a84b', grout:'#6b4c1e', sheen:0.30 },
+  { name:'Marble',     base:'#ddd8d0', grout:'#9a9590', sheen:0.50 },
+  { name:'Charcoal',   base:'#2e2e2e', grout:'#111111', sheen:0.18 },
+  { name:'Terracotta', base:'#c97b4b', grout:'#7a3e1e', sheen:0.14 },
   { name:'Green',      base:'#3d7a52', grout:'#1a3d28', sheen:0.10 },
 ];
 
-// ─── Build tile canvas texture ─────────────────────────────────────────────
-function makeTileTexture(idx) {
-  const SZ = 512;
-  const GROUT = 6;
-  const TILES_PER_SIDE = 2;
+// ─── Helpers ───────────────────────────────────────────────────────────────
+const cl = v => Math.max(0, Math.min(255, v));
+const hexToRgb = h => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+const lighten  = (h,a) => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
+const darken   = (h,a) => lighten(h, -a);
 
+function rRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+function addGrain(ctx, x, y, w, h, amt) {
+  const id = ctx.getImageData(x,y,w,h), d = id.data;
+  for (let i = 0; i < d.length; i+=4) {
+    const n = (Math.random()-0.5)*255*amt;
+    d[i]=cl(d[i]+n); d[i+1]=cl(d[i+1]+n); d[i+2]=cl(d[i+2]+n);
+  }
+  ctx.putImageData(id, x, y);
+}
+
+// ─── Tile texture ──────────────────────────────────────────────────────────
+function makeTileTexture(idx) {
+  const SZ = 512, GROUT = 6, N = 2;
   const cv = document.createElement('canvas');
   cv.width = cv.height = SZ;
   const ctx = cv.getContext('2d');
   const t = TILES[idx];
-  const tileW = SZ / TILES_PER_SIDE;
+  const tw = SZ / N;
 
-  for (let row = 0; row < TILES_PER_SIDE; row++) {
-    for (let col = 0; col < TILES_PER_SIDE; col++) {
-      const x = col * tileW + GROUT / 2;
-      const y = row * tileW + GROUT / 2;
-      const w = tileW - GROUT;
-      const h = tileW - GROUT;
-
-      const grd = ctx.createLinearGradient(x, y, x + w, y + h);
-      grd.addColorStop(0.0, lighten(t.base,  0.12));
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const x = col*tw + GROUT/2, y = row*tw + GROUT/2;
+      const w = tw - GROUT,       h = tw - GROUT;
+      const grd = ctx.createLinearGradient(x,y,x+w,y+h);
+      grd.addColorStop(0.0, lighten(t.base, 0.12));
       grd.addColorStop(0.5, t.base);
       grd.addColorStop(1.0, darken(t.base, 0.10));
       ctx.fillStyle = grd;
-      roundRect(ctx, x, y, w, h, 4);
-      ctx.fill();
-
-      addGrain(ctx, x, y, w, h, 0.04);
-
-      const hi = ctx.createLinearGradient(x, y, x + w * 0.6, y + h * 0.6);
-      hi.addColorStop(0,   `rgba(255,255,255,${t.sheen})`);
-      hi.addColorStop(1,   'rgba(255,255,255,0)');
+      rRect(ctx,x,y,w,h,4); ctx.fill();
+      addGrain(ctx,x,y,w,h,0.04);
+      const hi = ctx.createLinearGradient(x,y,x+w*0.6,y+h*0.6);
+      hi.addColorStop(0, `rgba(255,255,255,${t.sheen})`);
+      hi.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = hi;
-      roundRect(ctx, x, y, w, h, 4);
-      ctx.fill();
+      rRect(ctx,x,y,w,h,4); ctx.fill();
     }
   }
-
   ctx.fillStyle = t.grout;
-  for (let row = 0; row <= TILES_PER_SIDE; row++) {
-    ctx.fillRect(0, row * tileW - GROUT / 2, SZ, GROUT);
+  for (let i = 0; i <= N; i++) {
+    ctx.fillRect(0, i*tw - GROUT/2, SZ, GROUT);
+    ctx.fillRect(i*tw - GROUT/2, 0, GROUT, SZ);
   }
-  for (let col = 0; col <= TILES_PER_SIDE; col++) {
-    ctx.fillRect(col * tileW - GROUT / 2, 0, GROUT, SZ);
-  }
-
   const tex = new THREE.CanvasTexture(cv);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   return tex;
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function addGrain(ctx, x, y, w, h, amount) {
-  const id = ctx.getImageData(x, y, w, h);
-  const d  = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random() - 0.5) * 255 * amount;
-    d[i]   = clamp(d[i]   + n);
-    d[i+1] = clamp(d[i+1] + n);
-    d[i+2] = clamp(d[i+2] + n);
-  }
-  ctx.putImageData(id, x, y);
-}
-
-function clamp(v) { return Math.max(0, Math.min(255, v)); }
-function lighten(hex, amt) {
-  const [r,g,b] = hexToRgb(hex);
-  return rgbToHex(clamp(r+255*amt), clamp(g+255*amt), clamp(b+255*amt));
-}
-function darken(hex, amt) { return lighten(hex, -amt); }
-function hexToRgb(hex) {
-  const n = parseInt(hex.replace('#',''), 16);
-  return [(n>>16)&255, (n>>8)&255, n&255];
-}
-function rgbToHex(r,g,b) {
-  return '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
-}
-
-// ─── Build floor mesh inside the anchored group ────────────────────────────
-// The GROUP position/rotation is fixed at placement. Only the mesh inside
-// changes when the user adjusts size/color — so the tile never moves.
+// ─── Build / rebuild the mesh inside the fixed anchor group ───────────────
 function buildFloorMesh(sizeM) {
-  if (!floorAnchor) return;
+  if (!floorGroup) return;
 
-  // Remove old mesh from anchor
   if (floorMesh) {
-    floorAnchor.remove(floorMesh);
+    floorGroup.remove(floorMesh);
     floorMesh.geometry.dispose();
     if (floorMesh.material.map) floorMesh.material.map.dispose();
     floorMesh.material.dispose();
     floorMesh = null;
   }
 
+  // Tile physical size from slider (0.1 m – 0.6 m per tile)
+  const tileM = parseFloat(document.getElementById('tile-size-slider').value) * 0.05 + 0.1;
   const tex = makeTileTexture(currentTileIdx);
-  // Each texture covers 2×tileSizeMeters. Repeat to fill sizeM.
-  const repeatCount = sizeM / (tileSizeMeters * 2);
-  tex.repeat.set(repeatCount, repeatCount);
+  // Texture covers 2×2 tiles; calculate repeat so tiles are the right size
+  const rep = sizeM / (tileM * 2);
+  tex.repeat.set(rep, rep);
 
-  const mat = new THREE.MeshStandardMaterial({
-    map:         tex,
-    transparent: true,
-    opacity:     tileOpacity,
-    roughness:   0.75,
-    metalness:   0.05,
-    depthWrite:  false,
-    side:        THREE.FrontSide,
+  /*
+   *  WHY MeshBasicMaterial + polygonOffset instead of MeshStandardMaterial + Y nudge:
+   *
+   *  MeshStandardMaterial responds to scene lights, making the tile look
+   *  brighter or darker than the real floor under the phone's actual lighting
+   *  → tile looks "pasted on top".
+   *
+   *  MeshBasicMaterial ignores lights entirely, so its colour comes straight
+   *  from the texture. The real floor's reflected light is already in the
+   *  camera feed. Combined with opacity the result feels like the tile IS
+   *  the floor rather than floating above it.
+   *
+   *  polygonOffset (factor=-2, units=-2) nudges the tile toward the camera
+   *  in clip space — no actual Y movement, so it never lifts off the surface.
+   *  It purely resolves the z-fighting that happens when two surfaces share
+   *  the exact same depth value.
+   *
+   *  depthWrite:true  — the tile writes depth so objects in front of it
+   *                     (chair legs, feet) correctly occlude the tile edges.
+   */
+  const mat = new THREE.MeshBasicMaterial({
+    map:                 tex,
+    transparent:         true,
+    opacity:             tileOpacity,
+    depthWrite:          true,
+    depthTest:           true,
+    polygonOffset:       true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits:  -2,
+    side:                THREE.FrontSide,
   });
 
   const geo = new THREE.PlaneGeometry(sizeM, sizeM);
   floorMesh = new THREE.Mesh(geo, mat);
-  // Plane lies in XY by default; rotate to XZ (horizontal)
+  // PlaneGeometry faces +Z by default; rotate to lie flat on XZ plane
   floorMesh.rotation.x = -Math.PI / 2;
-  // NO position offset — the anchor group already sits at floor level
-  floorMesh.renderOrder = 1;
-
-  floorAnchor.add(floorMesh);
+  // Zero local offset — the group already sits at the exact floor Y
+  floorMesh.renderOrder = 0;
+  floorGroup.add(floorMesh);
 }
 
-// ─── Place tile at current reticle hit ────────────────────────────────────
+// ─── Place tile ────────────────────────────────────────────────────────────
 function placeTile() {
-  if (!reticle.visible) { setStatus('Point at the floor first'); return; }
+  if (!latestHitMatrix) { setStatus('Point at the floor first'); return; }
 
-  // Extract world position from reticle's current matrix
-  const worldPos = new THREE.Vector3();
-  const worldQuat = new THREE.Quaternion();
-  const worldScale = new THREE.Vector3();
-  reticle.matrix.decompose(worldPos, worldQuat, worldScale);
+  // Decompose the hit-test pose matrix → world position + orientation
+  const m4  = new THREE.Matrix4().fromArray(latestHitMatrix);
+  const pos  = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const scl  = new THREE.Vector3();
+  m4.decompose(pos, quat, scl);
 
-  // Store for later (size/color changes reuse this)
-  placedPosition.copy(worldPos);
-  placedQuaternion.copy(worldQuat);
+  // Remove any previous placement
+  if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
 
-  // Create (or reset) the anchor group at exact floor position
-  if (floorAnchor) {
-    scene.remove(floorAnchor);
-    floorAnchor = null;
-    floorMesh = null;
-  }
-  floorAnchor = new THREE.Group();
-  // Set position exactly from hit-test — Y is the real floor height
-  floorAnchor.position.copy(worldPos);
-  // We intentionally do NOT copy XZ rotation from the reticle so tiles stay axis-aligned
-  scene.add(floorAnchor);
+  floorGroup = new THREE.Group();
+
+  // ★ Position the group at EXACTLY the hit surface — no Y adjustments
+  floorGroup.position.copy(pos);
+
+  // Keep the group rotation flat (identity) — we don't want to inherit
+  // any tilt from the hit-test normal on slightly uneven floors.
+  // This also means the tile stays perfectly horizontal even if the camera
+  // was angled when the user tapped.
+  floorGroup.quaternion.identity();
+
+  scene.add(floorGroup);
 
   const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.5;
   buildFloorMesh(sizeM);
 
   floorPlaced = true;
+  reticle.visible = false;
   document.getElementById('reticle-ring').style.opacity = '0';
   document.getElementById('place-btn').textContent = '✓ PLACED';
-  setStatus('✓ Floor locked — move around to view!');
+  setStatus('Tile placed — walk around to inspect!');
 }
 window.placeTile = placeTile;
 
 function resetAR() {
-  if (floorAnchor) {
-    scene.remove(floorAnchor);
-    floorAnchor = null;
-    floorMesh = null;
-  }
-  floorPlaced = false;
-  reticle.visible = true;
+  if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
+  floorPlaced     = false;
+  latestHitMatrix = null;
+  reticle.visible = false;
   document.getElementById('reticle-ring').style.opacity = '1';
   document.getElementById('place-btn').textContent = 'TAP TO PLACE';
   setStatus('Move phone slowly over the floor…');
 }
 window.resetAR = resetAR;
 
-// ─── Three.js init ─────────────────────────────────────────────────────────
+// ─── Three.js bootstrap ───────────────────────────────────────────────────
 function initThree() {
   scene    = new THREE.Scene();
   camera   = new THREE.PerspectiveCamera();
@@ -367,27 +352,29 @@ function initThree() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
   renderer.setClearColor(0x000000, 0);
+  renderer.sortObjects = true;
 
   document.getElementById('canvas-container').appendChild(renderer.domElement);
 
+  // Minimal light — only affects reticle (MeshBasicMaterial ignores lights)
   scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.4);
-  dir.position.set(0, 3, 0);
-  scene.add(dir);
 
-  // Reticle — ring geometry rotated to lie flat
+  // Reticle — thin ring lying on the floor, updated from hit-test every frame
   const rGeo = new THREE.RingGeometry(0.06, 0.09, 36);
   rGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-  reticle = new THREE.Mesh(
-    rGeo,
-    new THREE.MeshBasicMaterial({ color: 0xf0d080, side: THREE.DoubleSide })
-  );
+  reticle = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({
+    color:       0xf0d080,
+    side:        THREE.DoubleSide,
+    depthWrite:  false,
+    transparent: true,
+    opacity:     0.9,
+  }));
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
   scene.add(reticle);
 }
 
-// ─── AR start ─────────────────────────────────────────────────────────────
+// ─── AR session ───────────────────────────────────────────────────────────
 async function startAR() {
   if (!navigator.xr) { showNotSupported(); return; }
   const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
@@ -399,7 +386,7 @@ async function startAR() {
   try {
     xrSession = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay', 'light-estimation'],
+      optionalFeatures: ['dom-overlay'],
       domOverlay: { root: document.getElementById('hud') }
     });
   } catch (e) {
@@ -417,11 +404,8 @@ async function startAR() {
   xrSession.addEventListener('end', () => {
     document.getElementById('hud').style.display = 'none';
     document.getElementById('landing').style.display = 'flex';
-    hitTestSource = null;
-    hitTestSourceRequested = false;
-    floorPlaced = false;
-    floorAnchor = null;
-    floorMesh = null;
+    hitTestSource = null; hitTestSourceRequested = false;
+    floorPlaced = false; floorGroup = null; floorMesh = null; latestHitMatrix = null;
   });
 
   document.getElementById('hud').style.display = 'block';
@@ -430,34 +414,36 @@ async function startAR() {
 }
 window.startAR = startAR;
 
-// ─── XR frame ─────────────────────────────────────────────────────────────
+// ─── Render loop ──────────────────────────────────────────────────────────
 function onXRFrame(time, frame) {
   if (!frame) return;
 
-  const session = frame.session;
+  const session  = frame.session;
+  const refSpace = renderer.xr.getReferenceSpace();
 
-  // Request hit-test source once
   if (!hitTestSourceRequested) {
     session.requestReferenceSpace('viewer').then(vs => {
-      session.requestHitTestSource({ space: vs }).then(src => {
-        hitTestSource = src;
-      }).catch(() => setStatus('Hit-test unavailable — tap approximate floor area'));
+      session.requestHitTestSource({ space: vs })
+        .then(src => { hitTestSource = src; })
+        .catch(() => setStatus('Hit-test unavailable'));
     });
     hitTestSourceRequested = true;
   }
 
-  const refSpace = renderer.xr.getReferenceSpace();
-
+  // While not yet placed: drive reticle from hit-test and cache the matrix
   if (hitTestSource && refSpace && !floorPlaced) {
-    const results = frame.getHitTestResults(hitTestSource);
-    if (results.length > 0) {
-      const pose = results[0].getPose(refSpace);
+    const hits = frame.getHitTestResults(hitTestSource);
+    if (hits.length > 0) {
+      const pose = hits[0].getPose(refSpace);
       if (pose) {
+        // Cache as a proper JS Array so it doesn't get recycled by the XR runtime
+        latestHitMatrix = Array.from(pose.transform.matrix);
         reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
+        reticle.matrix.fromArray(latestHitMatrix);
         setStatus('Floor detected — tap PLACE!');
       }
     } else {
+      latestHitMatrix = null;
       reticle.visible = false;
       setStatus('Move phone slowly over the floor…');
     }
@@ -466,23 +452,19 @@ function onXRFrame(time, frame) {
   renderer.render(scene, camera);
 }
 
-// ─── UI wiring ────────────────────────────────────────────────────────────
+// ─── UI ───────────────────────────────────────────────────────────────────
 function setupUI() {
   document.querySelectorAll('.tile-thumb').forEach(el => {
     el.addEventListener('click', () => {
       document.querySelectorAll('.tile-thumb').forEach(t => t.classList.remove('active'));
       el.classList.add('active');
       currentTileIdx = parseInt(el.dataset.idx);
-      if (floorAnchor) {
-        const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.5;
-        buildFloorMesh(sizeM);
-      }
+      if (floorGroup) buildFloorMesh(parseFloat(document.getElementById('tile-size-slider').value) * 0.5);
     });
   });
 
   document.getElementById('tile-size-slider').addEventListener('input', e => {
-    const sizeM = parseFloat(e.target.value) * 0.5;
-    if (floorAnchor) buildFloorMesh(sizeM);
+    if (floorGroup) buildFloorMesh(parseFloat(e.target.value) * 0.5);
   });
 
   document.getElementById('opacity-slider').addEventListener('input', e => {
@@ -491,19 +473,13 @@ function setupUI() {
   });
 }
 
-function setStatus(msg) {
-  const el = document.getElementById('status');
-  if (el) el.textContent = msg;
-}
-
+function setStatus(msg) { const el = document.getElementById('status'); if (el) el.textContent = msg; }
 function showNotSupported() {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('not-supported').style.display = 'flex';
 }
 
-window.addEventListener('resize', () => {
-  if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
-});
+window.addEventListener('resize', () => { if (renderer) renderer.setSize(window.innerWidth, window.innerHeight); });
 </script>
 </body>
 </html>
