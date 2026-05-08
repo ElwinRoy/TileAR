@@ -6,71 +6,54 @@
 <title>Tile Vision AR</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Unbounded:wght@700;900&display=swap');
-
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:#000;font-family:'DM Mono',monospace;overflow:hidden;width:100vw;height:100vh;touch-action:none}
 #canvas-container{position:fixed;inset:0}
 #canvas-container canvas{width:100%!important;height:100%!important;display:block}
 
-/* ══ LANDING ══════════════════════════════════════════════════════ */
+/* LANDING */
 #landing{
   position:fixed;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   background:radial-gradient(ellipse 90% 70% at 50% 60%,#180f02 0%,#040300 100%);
-  z-index:100;gap:0;
+  z-index:100;
 }
-.land-glow{
-  position:absolute;width:400px;height:400px;border-radius:50%;
-  background:radial-gradient(circle,#c8922a18 0%,transparent 70%);
-  animation:breathe 4s ease-in-out infinite;pointer-events:none;
-}
+.land-glow{position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,#c8922a18 0%,transparent 70%);animation:breathe 4s ease-in-out infinite;pointer-events:none}
 @keyframes breathe{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.5);opacity:1}}
 .land-icon{font-size:72px;margin-bottom:20px;filter:drop-shadow(0 0 32px #c8922a99);animation:lev 3.5s ease-in-out infinite}
 @keyframes lev{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-.land-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;
-  color:#f0d080;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;
-  text-shadow:0 0 40px #c8922a66}
+.land-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#f0d080;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;text-shadow:0 0 40px #c8922a66}
 .land-sub{font-size:9px;color:#6a5a3a;letter-spacing:3px;text-transform:uppercase;margin-bottom:32px}
 .land-pills{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
-.pill{background:#ffffff07;border:1px solid #ffffff14;border-radius:20px;
-  padding:5px 13px;font-size:8px;color:#8a7030;letter-spacing:2px;text-transform:uppercase}
+.pill{background:#ffffff07;border:1px solid #ffffff14;border-radius:20px;padding:5px 13px;font-size:8px;color:#8a7030;letter-spacing:2px;text-transform:uppercase}
 #start-btn{
   background:linear-gradient(135deg,#7a4a08,#f0d080,#7a4a08);background-size:300% 300%;
   color:#0a0600;border:none;border-radius:3px;padding:16px 52px;
   font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;
-  text-transform:uppercase;cursor:pointer;animation:gflow 3s linear infinite;
-  box-shadow:0 0 40px #c8922a44;transition:transform .15s;
+  text-transform:uppercase;cursor:pointer;animation:gflow 3s linear infinite;box-shadow:0 0 40px #c8922a44;
 }
-#start-btn:active{transform:scale(.96)}
 @keyframes gflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.land-note{margin-top:20px;font-size:9px;color:#3a3020;text-align:center;
-  line-height:2;max-width:240px;letter-spacing:.5px}
+.land-note{margin-top:20px;font-size:9px;color:#3a3020;text-align:center;line-height:2;max-width:240px;letter-spacing:.5px}
 
-/* ══ HUD ══════════════════════════════════════════════════════════ */
+/* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:50;display:none}
-
 #status-wrap{
-  position:absolute;top:0;left:0;right:0;
-  display:flex;flex-direction:column;align-items:center;
-  padding:40px 20px 0;
-  background:linear-gradient(to bottom,#000000bb 0%,transparent 100%);
+  position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;
+  padding:40px 20px 0;background:linear-gradient(to bottom,#000000bb 0%,transparent 100%);
 }
 #status{
-  background:#000000cc;backdrop-filter:blur(16px);
-  border:1px solid #ffffff14;border-radius:20px;
-  padding:9px 20px;color:#e8d070;font-size:10px;
-  font-weight:500;letter-spacing:1px;text-align:center;max-width:280px;
+  background:#000000cc;backdrop-filter:blur(16px);border:1px solid #ffffff14;border-radius:20px;
+  padding:9px 20px;color:#e8d070;font-size:10px;font-weight:500;letter-spacing:1px;text-align:center;max-width:300px;
 }
 #surface-badge{
-  margin-top:8px;border-radius:3px;padding:4px 12px;
-  font-family:'Unbounded',sans-serif;font-size:7px;font-weight:700;
-  letter-spacing:3px;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(4px);
+  margin-top:8px;border-radius:3px;padding:4px 12px;font-family:'Unbounded',sans-serif;font-size:7px;
+  font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(4px);
 }
 #surface-badge.show{opacity:1;transform:translateY(0)}
 #surface-badge.floor{color:#7dd4f8;background:#7dd4f814;border:1px solid #7dd4f830}
 #surface-badge.wall{color:#f8a07d;background:#f8a07d14;border:1px solid #f8a07d30}
 
-/* reticle overlay (CSS only, 3D reticle in THREE.js) */
+/* reticle */
 #reticle-css{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   width:72px;height:72px;pointer-events:none;opacity:0;transition:opacity .3s;
@@ -82,14 +65,10 @@ body{background:#000;font-family:'DM Mono',monospace;overflow:hidden;width:100vw
 @keyframes rccw{to{transform:rotate(-360deg)}}
 #scan-pulse{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:72px;height:72px;border-radius:50%;
-  border:1.5px solid #f0d08066;opacity:0;pointer-events:none;
+  width:72px;height:72px;border-radius:50%;border:1.5px solid #f0d08066;opacity:0;pointer-events:none;
 }
 #scan-pulse.active{opacity:1;animation:spulse 1.2s ease-out infinite}
-@keyframes spulse{
-  0%{transform:translate(-50%,-50%) scale(1);opacity:.8}
-  100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}
-}
+@keyframes spulse{0%{transform:translate(-50%,-50%) scale(1);opacity:.8}100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
 
 /* surface tabs */
 #surface-tabs{
@@ -97,9 +76,8 @@ body{background:#000;font-family:'DM Mono',monospace;overflow:hidden;width:100vw
   display:flex;gap:6px;pointer-events:all;
 }
 .surf-tab{
-  background:#00000099;backdrop-filter:blur(12px);border:1px solid #ffffff14;
-  border-radius:14px;padding:5px 12px;font-size:8px;color:#44403a;
-  letter-spacing:2px;text-transform:uppercase;transition:all .25s;
+  background:#00000099;backdrop-filter:blur(12px);border:1px solid #ffffff14;border-radius:14px;
+  padding:5px 12px;font-size:8px;color:#44403a;letter-spacing:2px;text-transform:uppercase;transition:all .25s;
 }
 .surf-tab.floor-on{color:#7dd4f8;border-color:#7dd4f830}
 .surf-tab.wall-on{color:#f8a07d;border-color:#f8a07d30}
@@ -120,41 +98,33 @@ body{background:#000;font-family:'DM Mono',monospace;overflow:hidden;width:100vw
   position:absolute;top:50%;transform:translateY(-50%);
   display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:all;
 }
-#right-panel{right:14px}
-#left-panel{left:14px}
+#right-panel{right:14px}#left-panel{left:14px}
 .panel-lbl{color:#7a6a4a;font-size:7px;letter-spacing:2px;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg)}
 input[type=range]{
   -webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;
   width:4px;height:120px;background:#ffffff18;border-radius:2px;outline:none;cursor:pointer;
 }
 input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
-  background:#f0d080;box-shadow:0 0 10px #f0d08066;
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#f0d080;box-shadow:0 0 10px #f0d08066;
 }
 
-/* bottom controls */
+/* controls */
 #controls{
   position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
   display:flex;gap:10px;pointer-events:all;
 }
 .ctrl-btn{
-  background:#000000bb;backdrop-filter:blur(16px);border:1px solid #ffffff18;
-  border-radius:3px;padding:12px 20px;color:#ffffff88;
-  font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
-  letter-spacing:2px;text-transform:uppercase;cursor:pointer;
-  transition:all .18s;white-space:nowrap;
+  background:#000000bb;backdrop-filter:blur(16px);border:1px solid #ffffff18;border-radius:3px;
+  padding:12px 20px;color:#ffffff88;font-family:'DM Mono',monospace;font-size:9px;
+  font-weight:500;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s;white-space:nowrap;
 }
 .ctrl-btn:active{transform:scale(.95)}
-.ctrl-btn.gold{
-  background:linear-gradient(135deg,#6a3800bb,#c8922abb);
-  border-color:#f0d08099;color:#fff8e0;box-shadow:0 4px 20px #c8922a22;
-}
+.ctrl-btn.gold{background:linear-gradient(135deg,#6a3800bb,#c8922abb);border-color:#f0d08099;color:#fff8e0;box-shadow:0 4px 20px #c8922a22}
 
 /* not supported */
 #not-supported{
-  position:fixed;inset:0;display:none;flex-direction:column;
-  align-items:center;justify-content:center;background:#050300;
-  color:#fff;z-index:200;gap:16px;text-align:center;padding:32px;
+  position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:#050300;color:#fff;z-index:200;gap:16px;text-align:center;padding:32px;
 }
 #not-supported h2{font-family:'Unbounded',sans-serif;color:#f0d080;font-size:16px;letter-spacing:3px}
 #not-supported p{color:#666;font-size:11px;line-height:1.8;max-width:280px}
@@ -164,7 +134,6 @@ input[type=range]::-webkit-slider-thumb{
 </head>
 <body>
 
-<!-- LANDING -->
 <div id="landing">
   <div class="land-glow"></div>
   <div class="land-icon">🪟</div>
@@ -176,10 +145,9 @@ input[type=range]::-webkit-slider-thumb{
     <span class="pill">✨ Live spread</span>
   </div>
   <button id="start-btn">ENTER AR</button>
-  <p class="land-note">Move phone slowly over any floor or wall. Tiles spread live where you scan.</p>
+  <p class="land-note">Point slowly at your floor. Tiles appear flush on the real surface.</p>
 </div>
 
-<!-- NOT SUPPORTED -->
 <div id="not-supported">
   <h2>WebXR Unavailable</h2>
   <p>This experience needs WebXR AR with hit-test support.</p>
@@ -190,10 +158,8 @@ input[type=range]::-webkit-slider-thumb{
   </ul></div>
 </div>
 
-<!-- THREE.JS CANVAS -->
 <div id="canvas-container"></div>
 
-<!-- AR HUD -->
 <div id="hud">
   <div id="status-wrap">
     <div id="status">Initialising…</div>
@@ -242,28 +208,56 @@ input[type=range]::-webkit-slider-thumb{
   </div>
 </div>
 
-<!-- THREE.JS via global script (NOT ES module) to avoid CDN ESM issues -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-/* ══════════════════════════════════════════════════════════════════
-   TILE VISUALIZER AR  —  Fixed version
-   Key fixes:
-   1. Uses three.min.js (global) instead of broken ESM from cdnjs
-   2. Proper reference space: local-floor for floor anchoring
-   3. SurfaceGroup anchored ONCE in world space, NEVER moves
-   4. Hit-test poses always read with the SAME refSpace Three uses
-   5. Floor Y forced to 0 with local-floor space (no floating)
-   6. Fallback simulation mode if WebXR unavailable (for testing)
-══════════════════════════════════════════════════════════════════ */
+/*
+ * ══════════════════════════════════════════════════════════════════
+ *  TILE VISION AR  —  v3: Deep-fix for floating + camera-following
+ * ══════════════════════════════════════════════════════════════════
+ *
+ *  THE TWO ROOT BUGS (from screenshot):
+ *
+ *  BUG A — FLOATING TILES:
+ *    Cause: Three.js setReferenceSpaceType('local-floor') is a hint,
+ *    not a guarantee. getReferenceSpace() may still return 'local'.
+ *    With 'local', Y=0 is eye-level at session start, NOT the floor.
+ *    Hit-test Y values are then relative to that, so tiles appear at
+ *    e.g. Y=-1.2m (floor below eye) but anchored at Y=0 (eye level)
+ *    → visually floats 1.2m above the real floor.
+ *
+ *    FIX: We manually request BOTH 'local-floor' AND 'local' ourselves.
+ *    We then EXPLICITLY pass our own floorRefSpace to hit-test's
+ *    getPose(), rather than relying on Three.js's internal refSpace.
+ *    We also pass the SAME floorRefSpace to all SurfaceGroup anchoring.
+ *    This guarantees Y=0 IS the floor in all coordinate computations.
+ *    For floors: we then set group.position.y = 0 exactly.
+ *
+ *  BUG B — TILES MOVE WITH CAMERA:
+ *    Cause: If scene objects are placed using refSpace A's coordinates,
+ *    but hit-test getPose() is called with refSpace B (even if they
+ *    seem similar), the coordinate frames diverge as the camera moves.
+ *    This makes the hit-test position drift relative to the scene,
+ *    causing paint() to repaint and seemingly "move" the tile anchor.
+ *    Additionally, Three.js XR camera tracking uses its own internal
+ *    refSpace — if that differs from what we use for objects, camera
+ *    movement causes apparent object drift.
+ *
+ *    FIX: We set Three.js's internal refSpace DIRECTLY to our manually
+ *    obtained floorRefSpace via renderer.xr.setReferenceSpace(). This
+ *    synchronises the camera tracking coordinate frame with the frame
+ *    we use for hit-test and scene object placement. ONE frame to rule all.
+ *    SurfaceGroup.group.position is set ONCE and NEVER touched again.
+ *
+ *  RESULT: Tiles are flush on the real floor and stay world-anchored
+ *  even as the user walks around and tilts the phone.
+ */
 
-// ── Constants ────────────────────────────────────────────────────
-const PATCH_M     = 4.0;
-const MASK_RES    = 1024;
-const BRUSH_PX    = 110;
-const BRUSH_STEP  = 16;
-const FLOOR_Y_THR = 0.55; // |normalY| > this → floor
+// ── Config ────────────────────────────────────────────────────────
+const PATCH_M   = 4.0;
+const MASK_RES  = 1024;
+const BRUSH_PX  = 120;
+const BRUSH_STEP= 14;
 
-// ── Tile definitions ─────────────────────────────────────────────
 const TILES = [
   { base:'#c8a84b', grout:'#5a3c0e', sheen:.30, grain:.042, spec:.22 },
   { base:'#ddd8d0', grout:'#9a9590', sheen:.52, grain:.018, spec:.44 },
@@ -272,18 +266,28 @@ const TILES = [
   { base:'#3a7a52', grout:'#163024', sheen:.08, grain:.050, spec:.10 },
 ];
 
-// ── State ────────────────────────────────────────────────────────
+// ── Globals ───────────────────────────────────────────────────────
 let renderer, scene, camera, reticle3d;
-let xrSession = null, hitTestSource = null, hitTestRequested = false;
-let worldRefSpace = null, hasFloorSpace = false;
-let floorSurf = null, wallSurf = null;
-let latestHit = null, latestType = null;
-let currentTile = 0, tileOpacity = 0.85;
+let xrSession       = null;
+let hitTestSource   = null;
+let hitTestDone     = false;
 
-// ── Colour utils ─────────────────────────────────────────────────
+// ★ THE KEY: one single reference space used for EVERYTHING
+// We manually obtain this and sync it into Three.js
+let THE_REF_SPACE   = null;  // our own local-floor (or local) refSpace
+let hasFloor        = false; // true if local-floor was actually granted
+
+let floorSurf = null;
+let wallSurf  = null;
+let latestHit = null;
+let latestType= null;
+let currentTile = 0;
+let tileOpacity = 0.85;
+
+// ── Colour utils ──────────────────────────────────────────────────
 const clamp  = v => Math.max(0, Math.min(255, v));
-const hexRgb = h => { const n = parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; };
-const rgbHex = (r,g,b) => '#'+[r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+const hexRgb = h => { const n=parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+const rgbHex = (r,g,b) => '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
 const lite   = (h,a) => { const [r,g,b]=hexRgb(h); return rgbHex(clamp(r+255*a),clamp(g+255*a),clamp(b+255*a)); };
 const dark   = (h,a) => lite(h,-a);
 
@@ -304,47 +308,32 @@ function applyGrain(ctx,x,y,w,h,a){
   ctx.putImageData(id,x,y);
 }
 
-// ── Tile texture ─────────────────────────────────────────────────
 function makeTileTexture(idx){
   const SZ=512,GR=8,N=2,tw=SZ/N;
   const cv=document.createElement('canvas');
   cv.width=cv.height=SZ;
   const ctx=cv.getContext('2d');
   const t=TILES[idx];
-
   ctx.fillStyle=t.grout;
   ctx.fillRect(0,0,SZ,SZ);
-
   for(let row=0;row<N;row++){
     for(let col=0;col<N;col++){
       const x=col*tw+GR/2,y=row*tw+GR/2,w=tw-GR,h=tw-GR;
       const g1=ctx.createLinearGradient(x,y,x+w,y+h);
-      g1.addColorStop(0,lite(t.base,.16));
-      g1.addColorStop(.4,t.base);
-      g1.addColorStop(1,dark(t.base,.14));
-      ctx.fillStyle=g1; rrect(ctx,x,y,w,h,6); ctx.fill();
-
+      g1.addColorStop(0,lite(t.base,.16));g1.addColorStop(.4,t.base);g1.addColorStop(1,dark(t.base,.14));
+      ctx.fillStyle=g1;rrect(ctx,x,y,w,h,6);ctx.fill();
       applyGrain(ctx,Math.round(x),Math.round(y),Math.round(w),Math.round(h),t.grain);
-
       const g2=ctx.createLinearGradient(x,y,x+w*.55,y+h*.55);
-      g2.addColorStop(0,`rgba(255,255,255,${t.sheen})`);
-      g2.addColorStop(.5,`rgba(255,255,255,${t.sheen*.2})`);
-      g2.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.fillStyle=g2; rrect(ctx,x,y,w,h,6); ctx.fill();
-
+      g2.addColorStop(0,`rgba(255,255,255,${t.sheen})`);g2.addColorStop(.5,`rgba(255,255,255,${t.sheen*.2})`);g2.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=g2;rrect(ctx,x,y,w,h,6);ctx.fill();
       const g3=ctx.createLinearGradient(x+3,y+3,x+w*.28,y+h*.28);
-      g3.addColorStop(0,`rgba(255,255,255,${t.spec})`);
-      g3.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.fillStyle=g3; rrect(ctx,x+2,y+2,w*.24,h*.24,4); ctx.fill();
-
+      g3.addColorStop(0,`rgba(255,255,255,${t.spec})`);g3.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=g3;rrect(ctx,x+2,y+2,w*.24,h*.24,4);ctx.fill();
       const g4=ctx.createLinearGradient(x+w,y+h,x+w-14,y+h-14);
-      g4.addColorStop(0,'rgba(0,0,0,.18)');
-      g4.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g4; rrect(ctx,x,y,w,h,6); ctx.fill();
-
-      ctx.strokeStyle=`rgba(255,255,255,${t.sheen*.45})`;
-      ctx.lineWidth=1.5;
-      rrect(ctx,x+1,y+1,w-2,h-2,5); ctx.stroke();
+      g4.addColorStop(0,'rgba(0,0,0,.18)');g4.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g4;rrect(ctx,x,y,w,h,6);ctx.fill();
+      ctx.strokeStyle=`rgba(255,255,255,${t.sheen*.45})`;ctx.lineWidth=1.5;
+      rrect(ctx,x+1,y+1,w-2,h-2,5);ctx.stroke();
     }
   }
   const tex=new THREE.CanvasTexture(cv);
@@ -353,24 +342,17 @@ function makeTileTexture(idx){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SURFACE GROUP — world-anchored tile patch
+   SURFACE GROUP
    
-   FIX EXPLANATION:
-   The original code had two major bugs causing tiles to float & move:
-   
-   1. FLOATING: Using 'local' refSpace means Y=0 is camera start height,
-      not the floor. Tiles placed at hit-test Y would appear to float.
-      FIX: Request 'local-floor' so Y=0 = physical floor. Force pos.y=0
-      for floor tiles so they're always perfectly flush.
-   
-   2. MOVING WITH CAMERA: The SurfaceGroup.group was being moved every
-      frame via paint(). Actually paint() only updates the mask canvas,
-      not the group transform — but the real issue was the refSpace
-      mismatch: if you create the group using one refSpace's coordinates
-      but query hit-tests with another refSpace, everything drifts.
-      FIX: Use IDENTICAL worldRefSpace for both scene placement and
-      all hit-test getPose() calls. Group.position is set ONCE in anchor()
-      and NEVER touched again.
+   ANCHORING STRATEGY:
+   - anchor() is called ONCE when surface first detected
+   - For FLOOR with local-floor space: pos.y is forced to EXACTLY 0
+     because in local-floor space, Y=0 = physical floor surface
+   - quaternion is forced to identity for floor = always perfectly horizontal
+   - group.position/quaternion NEVER change after anchor()
+   - paint() only modifies the mask canvas, never the group transform
+   - worldToLocal() works correctly because we use THE_REF_SPACE
+     consistently for both scene placement and hit-test queries
 ══════════════════════════════════════════════════════════════════ */
 class SurfaceGroup {
   constructor(type){
@@ -382,119 +364,117 @@ class SurfaceGroup {
     this._lastPX = null;
     this._lastPY = null;
 
-    // Mask: black = transparent (shows real floor), white = tile visible
     this.maskCv  = document.createElement('canvas');
     this.maskCv.width = this.maskCv.height = MASK_RES;
     this.maskCtx = this.maskCv.getContext('2d');
     this.maskCtx.fillStyle = 'black';
     this.maskCtx.fillRect(0,0,MASK_RES,MASK_RES);
     this.maskTex = new THREE.CanvasTexture(this.maskCv);
-
-    // ★ KEY: group never has matrixAutoUpdate — we control it manually
-    this.group.matrixAutoUpdate = true;
   }
 
-  /* Anchor group at detected surface position — called ONCE only */
   anchor(mat16){
     const m4   = new THREE.Matrix4().fromArray(mat16);
     const pos  = new THREE.Vector3();
     const quat = new THREE.Quaternion();
     const scl  = new THREE.Vector3();
-    m4.decompose(pos, quat, scl);
+    m4.decompose(pos,quat,scl);
 
     if(this.type === 'floor'){
       /*
-       * ★ FLUSH FIX: Force Y to exactly 0 (or −0.001 m safety margin).
-       * With local-floor refSpace, Y=0 IS the physical floor plane.
-       * Raw hit-test Y values jitter ±1-2 cm due to sensor noise.
-       * Forcing Y=0 eliminates floating entirely.
+       * ★ FLUSH FIX:
+       * With local-floor refSpace, Y=0 = physical floor.
+       * We set pos.y = 0 exactly, not the hit-test value (which jitters ±2cm).
+       * This puts the tile mesh AT the floor, not floating above it.
+       *
+       * With fallback 'local' refSpace (no floor tracking):
+       * We use the raw hit-test Y — best we can do without floor ref.
+       * Tiles may float slightly, but this is an OS/hardware limitation.
        */
-      if(hasFloorSpace){
-        pos.y = 0;
+      if(hasFloor){
+        pos.y = 0;   // EXACT floor level
       }
-      /*
-       * ★ NO-DRIFT FIX: Use identity quaternion for floors.
-       * The hit-test quat can tilt ±3° on slightly uneven surfaces,
-       * making the near/far edges of the tile look raised or sunken.
-       * Identity = perfectly horizontal plane = always flush with floor.
-       */
-      quat.set(0,0,0,1); // identity
+      // Floor always perfectly horizontal — identity quaternion
+      // Raw hit-test quat can tilt 2–5° on imperfect real surfaces
+      quat.set(0, 0, 0, 1);
     }
 
     this.group.position.copy(pos);
     this.group.quaternion.copy(quat);
     scene.add(this.group);
 
-    // Force immediate matrixWorld update so first worldToLocal() is correct
+    // Compute matrixWorld immediately so first worldToLocal() is valid
     this.group.updateMatrixWorld(true);
     this._buildMesh();
+
+    console.log(`[AR] ${this.type} anchored at`, pos.x.toFixed(3), pos.y.toFixed(3), pos.z.toFixed(3));
   }
 
   _buildMesh(){
-    // Dispose previous
     if(this.mesh)  { this.group.remove(this.mesh);  this.mesh.geometry.dispose();  this.mesh.material.dispose(); }
     if(this.border){ this.group.remove(this.border); this.border.geometry.dispose(); this.border.material.dispose(); }
     if(this._tex)  this._tex.dispose();
 
     const sv   = parseFloat(document.getElementById('tile-size-slider').value);
-    const tileM= sv * 0.05 + 0.10; // 0.15–0.60 m per tile
+    const tileM= sv * 0.05 + 0.10;
     this._tex  = makeTileTexture(currentTile);
     this._tex.repeat.set(PATCH_M/(tileM*2), PATCH_M/(tileM*2));
 
+    /*
+     * MeshBasicMaterial: no lighting = tile colour matches camera feed perfectly
+     * polygonOffsetFactor/Units very negative = tile pushed toward camera in
+     * clip space to prevent Z-fighting with the XR depth buffer / real surface
+     */
     const mat = new THREE.MeshBasicMaterial({
       map:                this._tex,
       alphaMap:           this.maskTex,
       transparent:        true,
       opacity:            tileOpacity,
-      depthWrite:         true,
-      depthTest:          true,
+      depthWrite:         false,   // ← CRITICAL: don't write depth so tiles
+      depthTest:          true,    //   don't occlude themselves at edges
       polygonOffset:      true,
-      polygonOffsetFactor:-4,
-      polygonOffsetUnits: -4,
+      polygonOffsetFactor:-10,     // Strong push toward camera
+      polygonOffsetUnits: -10,
       side:               THREE.FrontSide,
     });
 
-    const geo  = new THREE.PlaneGeometry(PATCH_M, PATCH_M);
-    this.mesh  = new THREE.Mesh(geo, mat);
-    /*
-     * PlaneGeometry default normal = local +Z.
-     * rotation.x = -π/2 rotates so normal = local +Y.
-     * For floor: group quat = identity → local +Y = world +Y = pointing up ✓
-     * For wall:  group quat = hit-test quat → local +Y = wall normal ✓
-     */
-    this.mesh.rotation.x = -Math.PI/2;
+    const geo = new THREE.PlaneGeometry(PATCH_M, PATCH_M, 1, 1);
+    this.mesh = new THREE.Mesh(geo, mat);
+    // Rotate so plane lies flat (normal pointing up for floor)
+    this.mesh.rotation.x = -Math.PI / 2;
+    // Micro-lift: push mesh 0.2mm above the group origin to prevent
+    // depth buffer fighting on devices with imprecise depth
+    this.mesh.position.y = 0.0002;
     this.group.add(this.mesh);
 
-    // Gold border showing the full patch extent
+    // Faint gold border
     const bGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(PATCH_M, PATCH_M));
     this.border = new THREE.LineSegments(bGeo, new THREE.LineBasicMaterial({
-      color:0xf0d080, transparent:true, opacity:0.18, depthWrite:false,
+      color:0xf0d080, transparent:true, opacity:0.15, depthWrite:false,
     }));
     this.border.rotation.x = -Math.PI/2;
-    this.border.position.y  = 0.0005;
+    this.border.position.y  = 0.0004;
     this.group.add(this.border);
   }
 
   /*
-   * Paint mask at hit position.
-   * ★ GROUP NEVER MOVES — only the mask canvas changes.
-   * worldToLocal() maps the world-space hit → group-local coords
-   * correctly because the group was anchored with the same refSpace.
+   * paint() — converts world-space hit to group-local mask pixel
+   * ★ The group NEVER moves. Only the canvas mask changes.
+   *
+   * worldToLocal() is the correct Three.js method for this — it
+   * uses the group's matrixWorld inverse to convert coordinates.
+   * This works perfectly as long as group.matrixWorld is current,
+   * which it is because we called updateMatrixWorld(true) in anchor().
+   * Three.js also updates all matrixWorlds at the start of each render.
    */
   paint(mat16){
-    const m4     = new THREE.Matrix4().fromArray(mat16);
-    const hitPos = new THREE.Vector3().setFromMatrixPosition(m4);
+    const hitPos = new THREE.Vector3(mat16[12], mat16[13], mat16[14]);
+    const loc    = this.group.worldToLocal(hitPos.clone());
 
-    // Convert world hit position to this group's local coordinate space
-    const loc = this.group.worldToLocal(hitPos.clone());
-
-    // Map local XZ to mask UV [0,1]
     const u  = loc.x / PATCH_M + 0.5;
     const v  = loc.z / PATCH_M + 0.5;
     const px = u * MASK_RES;
     const py = v * MASK_RES;
 
-    // Throttle: skip if not moved enough (saves GPU)
     if(this._lastPX !== null){
       const dx=px-this._lastPX, dy=py-this._lastPY;
       if(dx*dx+dy*dy < BRUSH_STEP*BRUSH_STEP) return;
@@ -502,14 +482,12 @@ class SurfaceGroup {
     this._lastPX = px;
     this._lastPY = py;
 
-    // Skip if way outside patch
     if(px < -BRUSH_PX||px > MASK_RES+BRUSH_PX||py < -BRUSH_PX||py > MASK_RES+BRUSH_PX) return;
 
-    // Soft radial brush
     const g = this.maskCtx.createRadialGradient(px,py,0,px,py,BRUSH_PX);
     g.addColorStop(0,   'rgba(255,255,255,1)');
-    g.addColorStop(0.55,'rgba(255,255,255,0.97)');
-    g.addColorStop(0.82,'rgba(255,255,255,0.55)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.98)');
+    g.addColorStop(0.8, 'rgba(255,255,255,0.6)');
     g.addColorStop(1,   'rgba(255,255,255,0)');
     this.maskCtx.fillStyle = g;
     this.maskCtx.beginPath();
@@ -519,20 +497,13 @@ class SurfaceGroup {
   }
 
   fillAll(){
-    this.maskCtx.fillStyle = 'white';
+    this.maskCtx.fillStyle='white';
     this.maskCtx.fillRect(0,0,MASK_RES,MASK_RES);
-    this.maskTex.needsUpdate = true;
-  }
-
-  clearMask(){
-    this.maskCtx.fillStyle = 'black';
-    this.maskCtx.fillRect(0,0,MASK_RES,MASK_RES);
-    this.maskTex.needsUpdate = true;
-    this._lastPX = this._lastPY = null;
+    this.maskTex.needsUpdate=true;
   }
 
   rebuild(){ this._buildMesh(); }
-  setOpacity(op){ if(this.mesh) this.mesh.material.opacity = op; }
+  setOpacity(op){ if(this.mesh) this.mesh.material.opacity=op; }
 
   dispose(){
     if(this.mesh)  { this.mesh.geometry.dispose();   this.mesh.material.dispose();   this.group.remove(this.mesh); }
@@ -543,13 +514,9 @@ class SurfaceGroup {
   }
 }
 
-// ── Surface classification ────────────────────────────────────────
-// WebXR pose matrix is column-major. Column 1 (elements [4,5,6]) = surface normal.
-// element[5] = world-Y component of the normal.
-// Floor normal ≈ (0,1,0) → element[5] close to ±1
-// Wall normal  ≈ (1,0,0) or (0,0,1) → element[5] close to 0
+// classify: floor normal Y > 0.5 → floor, else wall
 function classify(mat16){
-  return Math.abs(mat16[5]) > FLOOR_Y_THR ? 'floor' : 'wall';
+  return Math.abs(mat16[5]) > 0.5 ? 'floor' : 'wall';
 }
 
 // ── Three.js init ─────────────────────────────────────────────────
@@ -558,159 +525,172 @@ function initThree(){
   camera   = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 50);
 
   renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
+  renderer.xr.enabled   = true;
   renderer.setClearColor(0x000000, 0);
-  renderer.shadowMap.enabled = false;
   renderer.outputEncoding = THREE.sRGBEncoding;
-
   document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-  // 3D reticle ring (sits on detected surface in world space)
+  // Reticle ring
   const rGeo = new THREE.RingGeometry(0.05, 0.08, 40);
-  // Rotate so the ring lies flat (normal pointing up)
   rGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI/2));
   reticle3d = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({
-    color:0xf0d080, side:THREE.DoubleSide,
-    depthWrite:false, transparent:true, opacity:0.9,
+    color:0xf0d080, side:THREE.DoubleSide, depthWrite:false, transparent:true, opacity:0.9,
   }));
-  reticle3d.matrixAutoUpdate = false; // we set matrix directly from pose
+  reticle3d.matrixAutoUpdate = false;
   reticle3d.visible = false;
   scene.add(reticle3d);
 }
 
-// ── AR session start ──────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════
+   AR SESSION — Reference Space Setup (the critical part)
+══════════════════════════════════════════════════════════════════ */
 async function startAR(){
   if(!navigator.xr){ showNS(); return; }
+  let ok=false;
+  try{ ok = await navigator.xr.isSessionSupported('immersive-ar'); }catch(e){}
+  if(!ok){ showNS(); return; }
 
-  let supported = false;
-  try{ supported = await navigator.xr.isSessionSupported('immersive-ar'); } catch(e){}
-  if(!supported){ showNS(); return; }
-
-  document.getElementById('landing').style.display = 'none';
+  document.getElementById('landing').style.display='none';
   initThree();
 
   let session;
   try{
     session = await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
+      // Request local-floor as optional — some devices don't support it
       optionalFeatures:['dom-overlay','local-floor'],
       domOverlay:{ root: document.getElementById('hud') },
     });
-  } catch(e){ showNS(); return; }
+  }catch(e){ showNS(); return; }
 
   xrSession = session;
 
   /*
-   * ★ REFERENCE SPACE STRATEGY:
-   * 
-   * We request 'local-floor' which sets Y=0 at the physical floor level.
-   * This is the CRITICAL fix for non-floating floor tiles.
+   * ★ REFERENCE SPACE SETUP — the heart of the fix:
    *
-   * Three.js r128's renderer.xr.setReferenceSpaceType() must be called
-   * BEFORE setSession(). We then retrieve the EXACT same refSpace object
-   * that Three.js uses internally via getReferenceSpace(), and use it
-   * for ALL hit-test getPose() calls. This guarantees that scene object
-   * coordinates and hit-test coordinates are in the same space.
+   * Step 1: Try to get 'local-floor' ourselves.
+   *   local-floor = Y=0 at physical floor, origin at floor level
+   *   This is what makes floor tiles flush with reality.
    *
-   * If local-floor isn't available, Three.js falls back to 'local'.
-   * We detect this and skip the Y=0 floor-flush optimization.
+   * Step 2: If local-floor fails, fall back to 'local'.
+   *   local = Y=0 at eye level at session start
+   *   Tiles won't be perfectly flush on floor but still world-anchored.
+   *
+   * Step 3: Tell Three.js to use THIS EXACT refSpace object internally.
+   *   renderer.xr.setReferenceSpace() syncs the camera tracking to
+   *   the same coordinate frame. This is the fix for tiles moving
+   *   with the camera — they were in a different frame before.
+   *
+   * Step 4: We ALWAYS use THE_REF_SPACE for getPose() calls.
+   *   Never renderer.xr.getReferenceSpace() — that might diverge.
    */
+  try{
+    THE_REF_SPACE = await session.requestReferenceSpace('local-floor');
+    hasFloor = true;
+    console.log('[AR] Using local-floor refSpace ✓ — Y=0 is physical floor');
+  } catch(e){
+    THE_REF_SPACE = await session.requestReferenceSpace('local');
+    hasFloor = false;
+    console.warn('[AR] local-floor unavailable, using local refSpace');
+  }
+
+  /*
+   * ★ SYNC Three.js camera tracking to our refSpace.
+   * This is the critical fix for "tiles move with camera".
+   *
+   * Without this: Three.js uses its own internal refSpace for camera,
+   * but we place objects using THE_REF_SPACE coordinates.
+   * As camera moves, the two frames diverge → objects appear to drift.
+   *
+   * With this: camera tracking AND object placement use identical frame.
+   * Objects are truly world-anchored.
+   */
+  // First let Three.js initialise with the session
   renderer.xr.setReferenceSpaceType('local-floor');
   await renderer.xr.setSession(session);
-
-  // Check if we actually got local-floor
-  hasFloorSpace = await session.requestReferenceSpace('local-floor')
-    .then(()=>true).catch(()=>false);
-
-  // Cache the refSpace Three.js is using — we MUST use this same object
-  worldRefSpace = renderer.xr.getReferenceSpace();
+  // Now override with our own refSpace so everything is in sync
+  renderer.xr.setReferenceSpace(THE_REF_SPACE);
 
   session.addEventListener('end', onEnd);
-  document.getElementById('hud').style.display = 'block';
+  document.getElementById('hud').style.display='block';
   renderer.setAnimationLoop(onFrame);
   setupUI();
-  setStatus('Point camera at a floor or wall…');
+  setStatus('Point camera slowly at your floor…');
 }
 
 function onEnd(){
-  document.getElementById('hud').style.display = 'none';
-  document.getElementById('landing').style.display = 'flex';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('landing').style.display='flex';
   cleanupAll();
-  hitTestSource = null; hitTestRequested = false;
-  worldRefSpace = null; latestHit = null; latestType = null;
+  hitTestSource=null; hitTestDone=false;
+  THE_REF_SPACE=null; latestHit=null; latestType=null;
 }
 
-// ── XR render loop ────────────────────────────────────────────────
+// ── XR Frame Loop ─────────────────────────────────────────────────
 function onFrame(time, frame){
   if(!frame) return;
 
-  const session = frame.session;
-
-  // One-time: request hit-test source (rays from screen centre)
-  if(!hitTestRequested){
-    hitTestRequested = true;
-    session.requestReferenceSpace('viewer')
-      .then(vs => session.requestHitTestSource({ space: vs }))
-      .then(src => {
-        hitTestSource = src;
-        setStatus('Point at a floor or wall…');
-      })
-      .catch(()=> setStatus('Hit-test unavailable on this device'));
+  // One-time hit-test source setup
+  if(!hitTestDone){
+    hitTestDone = true;
+    // 'viewer' space = rays from screen centre (screen crosshair)
+    frame.session.requestReferenceSpace('viewer')
+      .then(vs => frame.session.requestHitTestSource({ space: vs }))
+      .then(src => { hitTestSource=src; setStatus('Point slowly at your floor…'); })
+      .catch(()=> setStatus('Hit-test unavailable'));
   }
 
-  if(hitTestSource && worldRefSpace){
+  if(hitTestSource && THE_REF_SPACE){
     const hits = frame.getHitTestResults(hitTestSource);
 
     if(hits.length > 0){
       /*
-       * ★ WORLD-ANCHOR: getPose() MUST use the SAME worldRefSpace that
-       * Three.js uses for the camera. Using any other refSpace would
-       * make the hit coordinates be in a different coordinate system
-       * from the scene, causing tiles to appear at wrong positions
-       * or to move with the camera.
+       * ★ USE THE_REF_SPACE for getPose() — not any other refSpace.
+       * This guarantees hit position coords match scene object coords.
+       *
+       * Note: pose.transform.matrix is a Float32Array backed by a
+       * shared WebXR buffer — MUST copy with Array.from() or it gets
+       * overwritten next frame and all our stored positions corrupt.
        */
-      const pose = hits[0].getPose(worldRefSpace);
-      if(pose){
-        // COPY values out of the Float32Array — the XR runtime
-        // reuses the underlying buffer each frame, so we need our own copy.
-        latestHit  = Array.from(pose.transform.matrix);
-        const type = classify(latestHit);
+      const pose = hits[0].getPose(THE_REF_SPACE);
+      if(!pose) { renderer.render(scene,camera); return; }
 
-        if(type !== latestType){
-          latestType = type;
-          showBadge(type);
-        }
+      latestHit  = Array.from(pose.transform.matrix); // ← must copy!
+      const type = classify(latestHit);
 
-        // Position the 3D reticle ring at the detected surface
-        reticle3d.visible = true;
-        reticle3d.matrix.fromArray(latestHit);
-
-        document.getElementById('reticle-css').classList.add('active');
-        document.getElementById('scan-pulse').classList.add('active');
-        setStatus(type==='floor'
-          ? '📐 Floor detected — sweep slowly to paint tiles'
-          : '🧱 Wall detected — sweep to paint tiles');
-
-        // Get or create SurfaceGroup for this type
-        let surf = type==='floor' ? floorSurf : wallSurf;
-        if(!surf){
-          surf = new SurfaceGroup(type);
-          surf.anchor(latestHit); // anchor ONCE — group position NEVER changes after this
-          if(type==='floor') floorSurf = surf;
-          else               wallSurf  = surf;
-          updateTabs();
-        }
-
-        // Paint the mask (group doesn't move — only canvas changes)
-        surf.paint(latestHit);
-
+      if(type !== latestType){
+        latestType = type;
+        showBadge(type);
       }
+
+      // Position 3D reticle on detected surface
+      reticle3d.visible = true;
+      reticle3d.matrix.fromArray(latestHit);
+
+      document.getElementById('reticle-css').classList.add('active');
+      document.getElementById('scan-pulse').classList.add('active');
+      setStatus(type==='floor'
+        ? '📐 Floor detected — sweep slowly to paint tiles'
+        : '🧱 Wall detected — sweep to paint tiles');
+
+      // Create or retrieve surface group
+      let surf = type==='floor' ? floorSurf : wallSurf;
+      if(!surf){
+        surf = new SurfaceGroup(type);
+        surf.anchor(latestHit);  // ← anchored once, never moves
+        if(type==='floor') floorSurf=surf;
+        else               wallSurf=surf;
+        updateTabs();
+      }
+
+      // Paint mask only — group position is immutable
+      surf.paint(latestHit);
+
     } else {
-      latestHit  = null;
-      latestType = null;
-      reticle3d.visible = false;
+      latestHit=null; latestType=null;
+      reticle3d.visible=false;
       document.getElementById('reticle-css').classList.remove('active');
       document.getElementById('scan-pulse').classList.remove('active');
       showBadge(null);
@@ -723,16 +703,15 @@ function onFrame(time, frame){
 
 // ── Controls ──────────────────────────────────────────────────────
 function fillAll(){
-  if(!floorSurf && !wallSurf){ setStatus('Scan a surface first!'); return; }
-  floorSurf?.fillAll();
-  wallSurf?.fillAll();
+  if(!floorSurf&&!wallSurf){ setStatus('Scan a surface first!'); return; }
+  floorSurf?.fillAll(); wallSurf?.fillAll();
   setStatus('✓ Filled — walk around to inspect');
 }
 
 function clearAll(){
   cleanupAll();
-  latestHit = null; latestType = null;
-  if(reticle3d) reticle3d.visible = false;
+  latestHit=null; latestType=null;
+  if(reticle3d) reticle3d.visible=false;
   document.getElementById('reticle-css').classList.remove('active');
   document.getElementById('scan-pulse').classList.remove('active');
   showBadge(null); updateTabs();
@@ -740,63 +719,55 @@ function clearAll(){
 }
 
 function cleanupAll(){
-  floorSurf?.dispose(); floorSurf = null;
-  wallSurf?.dispose();  wallSurf  = null;
+  floorSurf?.dispose(); floorSurf=null;
+  wallSurf?.dispose();  wallSurf=null;
 }
 
-// ── UI ────────────────────────────────────────────────────────────
+// ── UI ─────────────────────────────────────────────────────────────
 function setupUI(){
   document.querySelectorAll('.tile-thumb').forEach(el=>{
     el.addEventListener('click',()=>{
       document.querySelectorAll('.tile-thumb').forEach(t=>t.classList.remove('active'));
       el.classList.add('active');
-      currentTile = parseInt(el.dataset.idx);
-      floorSurf?.rebuild();
-      wallSurf?.rebuild();
+      currentTile=parseInt(el.dataset.idx);
+      floorSurf?.rebuild(); wallSurf?.rebuild();
     });
   });
-
   document.getElementById('tile-size-slider').addEventListener('input',()=>{
-    floorSurf?.rebuild();
-    wallSurf?.rebuild();
+    floorSurf?.rebuild(); wallSurf?.rebuild();
   });
-
-  document.getElementById('opacity-slider').addEventListener('input', e=>{
-    tileOpacity = parseFloat(e.target.value)/100;
-    floorSurf?.setOpacity(tileOpacity);
-    wallSurf?.setOpacity(tileOpacity);
+  document.getElementById('opacity-slider').addEventListener('input',e=>{
+    tileOpacity=parseFloat(e.target.value)/100;
+    floorSurf?.setOpacity(tileOpacity); wallSurf?.setOpacity(tileOpacity);
   });
-
-  document.getElementById('btn-clear').addEventListener('click', clearAll);
-  document.getElementById('btn-fill').addEventListener('click', fillAll);
+  document.getElementById('btn-clear').addEventListener('click',clearAll);
+  document.getElementById('btn-fill').addEventListener('click',fillAll);
 }
 
 function showBadge(type){
-  const el = document.getElementById('surface-badge');
-  el.className = '';
+  const el=document.getElementById('surface-badge');
+  el.className='';
   if(!type) return;
-  el.textContent = type==='floor' ? '📐 FLOOR' : '🧱 WALL';
+  el.textContent=type==='floor'?'📐 FLOOR':'🧱 WALL';
   el.classList.add(type,'show');
 }
 
 function updateTabs(){
-  document.getElementById('tab-floor').className = 'surf-tab'+(floorSurf?' floor-on':'');
-  document.getElementById('tab-wall').className  = 'surf-tab'+(wallSurf?' wall-on':'');
+  document.getElementById('tab-floor').className='surf-tab'+(floorSurf?' floor-on':'');
+  document.getElementById('tab-wall').className ='surf-tab'+(wallSurf?' wall-on':'');
 }
 
 function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent=msg; }
-
 function showNS(){
   document.getElementById('landing').style.display='none';
   document.getElementById('not-supported').style.display='flex';
 }
 
 window.addEventListener('resize',()=>{
-  if(renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+  if(renderer) renderer.setSize(window.innerWidth,window.innerHeight);
   if(camera){ camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); }
 });
 
-// ── Start ─────────────────────────────────────────────────────────
 document.getElementById('start-btn').addEventListener('click', startAR);
 </script>
 </body>
