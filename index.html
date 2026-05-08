@@ -3,730 +3,483 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-<title>Tile Vision AR</title>
+<title>AR Tile Visualizer</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Unbounded:wght@700;900&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:#000;font-family:'DM Mono',monospace;overflow:hidden;width:100vw;height:100vh;touch-action:none}
-#c{position:fixed;inset:0}
-#c canvas{width:100%!important;height:100%!important;display:block}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
+  #canvas-container { position: fixed; inset: 0; }
+  canvas { display: block; width: 100% !important; height: 100% !important; }
 
-/* ── LANDING ─────────────────────────────────────────────────── */
-#landing{
-  position:fixed;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  background:radial-gradient(ellipse 90% 70% at 50% 60%,#180f02,#040300);z-index:100;
-}
-.glow{position:absolute;width:400px;height:400px;border-radius:50%;
-  background:radial-gradient(circle,#c8922a18,transparent 70%);
-  animation:breathe 4s ease-in-out infinite;pointer-events:none}
-@keyframes breathe{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.5);opacity:1}}
-.icon{font-size:72px;margin-bottom:20px;filter:drop-shadow(0 0 32px #c8922a99);animation:lev 3.5s ease-in-out infinite}
-@keyframes lev{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-.ttl{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#f0d080;
-  letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;text-shadow:0 0 40px #c8922a66}
-.sub{font-size:9px;color:#6a5a3a;letter-spacing:3px;text-transform:uppercase;margin-bottom:28px}
-.pills{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;justify-content:center}
-.pill{background:#ffffff07;border:1px solid #ffffff14;border-radius:20px;
-  padding:5px 13px;font-size:8px;color:#8a7030;letter-spacing:2px;text-transform:uppercase}
-#sbtn{
-  background:linear-gradient(135deg,#7a4a08,#f0d080,#7a4a08);background-size:300% 300%;
-  color:#0a0600;border:none;border-radius:3px;padding:16px 52px;
-  font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;
-  text-transform:uppercase;cursor:pointer;animation:gf 3s linear infinite;
-  box-shadow:0 0 40px #c8922a44;transition:transform .15s;
-}
-#sbtn:active{transform:scale(.96)}
-@keyframes gf{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.note{margin-top:20px;font-size:9px;color:#3a3020;text-align:center;line-height:2;max-width:260px}
+  #landing {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #0a0a0a 0%, #1a1008 50%, #0a0a0a 100%);
+    z-index: 100; gap: 0;
+  }
+  .landing-icon { font-size: 72px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  .landing-title { font-size: 28px; font-weight: 700; color: #f0d080; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .landing-sub { font-size: 14px; color: #8a7a5a; margin-bottom: 48px; letter-spacing: 1px; }
+  #start-btn {
+    background: linear-gradient(135deg, #c8922a, #f0d080, #c8922a); background-size: 200% 200%;
+    color: #1a0e00; border: none; border-radius: 50px; padding: 18px 48px;
+    font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; animation: shimmer 3s linear infinite; box-shadow: 0 8px 32px #c8922a55;
+  }
+  @keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+  .note { margin-top: 24px; font-size: 11px; color: #555; text-align: center; line-height: 1.6; max-width: 280px; }
 
-/* ── HUD ─────────────────────────────────────────────────────── */
-#hud{position:fixed;inset:0;pointer-events:none;z-index:50;display:none}
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
 
-#sw{position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;
-  align-items:center;padding:40px 20px 0;
-  background:linear-gradient(to bottom,#000000cc,transparent)}
-#st{background:#000000dd;backdrop-filter:blur(16px);border:1px solid #ffffff16;
-  border-radius:20px;padding:9px 22px;color:#e8d070;font-size:10px;
-  font-weight:500;letter-spacing:1px;text-align:center;max-width:310px}
-#badge{margin-top:8px;border-radius:3px;padding:4px 12px;font-family:'Unbounded',sans-serif;
-  font-size:7px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
-  opacity:0;transition:opacity .3s,transform .3s;transform:translateY(4px)}
-#badge.show{opacity:1;transform:translateY(0)}
-#badge.floor{color:#7dd4f8;background:#7dd4f814;border:1px solid #7dd4f830}
-#badge.wall{color:#f8a07d;background:#f8a07d14;border:1px solid #f8a07d30}
+  #status {
+    position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+    background: #000000cc; backdrop-filter: blur(12px);
+    border: 1px solid #f0d08033; border-radius: 24px;
+    padding: 10px 20px; color: #f0d080; font-size: 13px;
+    font-weight: 600; letter-spacing: .5px; text-align: center; white-space: nowrap;
+  }
 
-/* calibration bar */
-#calib-bar{
-  position:absolute;top:110px;left:50%;transform:translateX(-50%);
-  width:200px;height:4px;background:#ffffff10;border-radius:2px;overflow:hidden;
-  opacity:0;transition:opacity .3s;
-}
-#calib-fill{height:100%;width:0%;background:linear-gradient(90deg,#f0d080,#c8922a);border-radius:2px;transition:width .1s}
-#calib-bar.show{opacity:1}
+  #reticle-ring {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 60px; height: 60px; border: 2px solid #f0d08099; border-radius: 50%;
+    animation: spin-ring 4s linear infinite; transition: opacity .4s;
+  }
+  @keyframes spin-ring { 0%{transform:translate(-50%,-50%) rotate(0deg)} 100%{transform:translate(-50%,-50%) rotate(360deg)} }
 
-/* reticle */
-#rcss{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:72px;height:72px;pointer-events:none;opacity:0;transition:opacity .3s}
-#rcss.on{opacity:1}
-.rr{animation:rcw 8s linear infinite;transform-origin:36px 36px}
-.rt{animation:rccw 5s linear infinite;transform-origin:36px 36px}
-@keyframes rcw{to{transform:rotate(360deg)}}
-@keyframes rccw{to{transform:rotate(-360deg)}}
-#spulse{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:72px;height:72px;border-radius:50%;border:1.5px solid #f0d08066;
-  opacity:0;pointer-events:none}
-#spulse.on{opacity:1;animation:spp 1.2s ease-out infinite}
-@keyframes spp{0%{transform:translate(-50%,-50%) scale(1);opacity:.8}
-  100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
+  #tile-picker {
+    position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px; pointer-events: all;
+  }
+  .tile-thumb {
+    width: 52px; height: 52px; border-radius: 10px; border: 2px solid #ffffff33;
+    cursor: pointer; transition: border-color .2s, transform .2s;
+  }
+  .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
 
-/* surface tabs */
-#tabs{position:absolute;bottom:178px;left:50%;transform:translateX(-50%);
-  display:flex;gap:6px;pointer-events:all}
-.tab{background:#00000099;backdrop-filter:blur(12px);border:1px solid #ffffff14;
-  border-radius:14px;padding:5px 12px;font-size:8px;color:#44403a;
-  letter-spacing:2px;text-transform:uppercase;transition:all .25s}
-.tab.fon{color:#7dd4f8;border-color:#7dd4f830}
-.tab.won{color:#f8a07d;border-color:#f8a07d30}
+  #size-control {
+    position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
+  }
+  #size-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+  input[type=range] {
+    -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
+    width: 6px; height: 140px; background: #ffffff22; border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
 
-/* tile picker */
-#tp{position:absolute;bottom:116px;left:50%;transform:translateX(-50%);
-  display:flex;gap:10px;pointer-events:all}
-.tt{width:52px;height:52px;border-radius:8px;border:2px solid #ffffff1a;
-  cursor:pointer;transition:all .2s;overflow:hidden}
-.tt.on{border-color:#f0d080;transform:scale(1.18) translateY(-3px);
-  box-shadow:0 4px 18px #f0d08044}
+  #opacity-control {
+    position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
+  }
+  #opacity-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
 
-/* sliders */
-#rp,#lp{position:absolute;top:50%;transform:translateY(-50%);
-  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:all}
-#rp{right:14px}#lp{left:14px}
-.pl{color:#7a6a4a;font-size:7px;letter-spacing:2px;text-transform:uppercase;
-  writing-mode:vertical-rl;transform:rotate(180deg)}
-input[type=range]{-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;
-  width:4px;height:120px;background:#ffffff18;border-radius:2px;outline:none;cursor:pointer}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
-  border-radius:50%;background:#f0d080;box-shadow:0 0 10px #f0d08066}
+  #controls {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 16px; pointer-events: all;
+  }
+  .ctrl-btn {
+    background: #000000cc; backdrop-filter: blur(12px); border: 1px solid #ffffff22;
+    border-radius: 50px; padding: 14px 28px; color: #fff; font-size: 13px;
+    font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap;
+  }
+  .ctrl-btn.primary { background: #c8922acc; border-color: #f0d080aa; color: #fff8e0; }
 
-/* controls */
-#ctrl{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
-  display:flex;gap:10px;pointer-events:all}
-.cb{background:#000000bb;backdrop-filter:blur(16px);border:1px solid #ffffff18;
-  border-radius:3px;padding:12px 20px;color:#ffffff88;font-family:'DM Mono',monospace;
-  font-size:9px;font-weight:500;letter-spacing:2px;text-transform:uppercase;
-  cursor:pointer;transition:all .18s;white-space:nowrap}
-.cb:active{transform:scale(.95)}
-.cb.gold{background:linear-gradient(135deg,#6a3800bb,#c8922abb);
-  border-color:#f0d08099;color:#fff8e0;box-shadow:0 4px 20px #c8922a22}
-
-/* not supported */
-#ns{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
-  justify-content:center;background:#050300;color:#fff;z-index:200;gap:16px;
-  text-align:center;padding:32px}
-#ns h2{font-family:'Unbounded',sans-serif;color:#f0d080;font-size:16px;letter-spacing:3px}
-#ns p{color:#666;font-size:11px;line-height:1.8;max-width:280px}
-.nb{background:#ffffff05;border:1px solid #ffffff0a;border-radius:8px;
-  padding:20px;max-width:300px;text-align:left}
-.nb li{color:#777;font-size:10px;line-height:2.2;list-style:none}
+  #not-supported {
+    position: fixed; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; background: #0a0a0a;
+    color: #fff; z-index: 200; gap: 16px; text-align: center; padding: 32px;
+  }
+  #not-supported h2 { color: #f0d080; font-size: 22px; }
+  #not-supported p { color: #888; font-size: 14px; line-height: 1.6; max-width: 300px; }
+  #not-supported .steps { background: #ffffff08; border-radius: 12px; padding: 20px; max-width: 320px; text-align: left; }
+  #not-supported .steps li { color: #aaa; font-size: 13px; line-height: 2; }
 </style>
 </head>
 <body>
 
 <div id="landing">
-  <div class="glow"></div>
-  <div class="icon">🪟</div>
-  <div class="ttl">Tile Vision AR</div>
-  <div class="sub">Live surface preview</div>
-  <div class="pills">
-    <span class="pill">📐 Floor</span>
-    <span class="pill">🧱 Wall</span>
-    <span class="pill">✨ Live spread</span>
-  </div>
-  <button id="sbtn">ENTER AR</button>
-  <p class="note">Hold phone level, point at your floor, wait for gold bar to fill — then sweep to paint.</p>
+  <div class="landing-icon">🪟</div>
+  <div class="landing-title">AR Tile Visualizer</div>
+  <div class="landing-sub">See tiles on your real floor</div>
+  <button id="start-btn" onclick="startAR()">START AR</button>
+  <p class="note">Point camera at floor, move slowly until reticle appears, then tap PLACE.</p>
 </div>
 
-<div id="ns">
-  <h2>WebXR Unavailable</h2>
-  <p>Needs WebXR + hit-test. Use Chrome on Android over HTTPS.</p>
-  <div class="nb"><ul>
-    <li>📱 Chrome 81+ on Android</li>
-    <li>🔒 Must be served over HTTPS</li>
-    <li>🍎 iOS support is very limited</li>
+<div id="not-supported">
+  <h2>WebXR Not Available</h2>
+  <p>Your browser doesn't support WebXR AR.</p>
+  <div class="steps"><ul>
+    <li>📱 Use <strong>Chrome on Android</strong></li>
+    <li>🔗 Must be on <strong>HTTPS</strong></li>
+    <li>🍎 iOS Safari 15.4+ with WebXR enabled</li>
   </ul></div>
 </div>
 
-<div id="c"></div>
+<div id="canvas-container"></div>
 
 <div id="hud">
-  <div id="sw">
-    <div id="st">Initialising…</div>
-    <div id="badge"></div>
-  </div>
-  <div id="calib-bar"><div id="calib-fill"></div></div>
+  <div id="reticle-ring"></div>
+  <div id="status">Move phone slowly over the floor…</div>
 
-  <div id="rcss">
-    <svg viewBox="0 0 72 72" fill="none">
-      <circle class="rr" cx="36" cy="36" r="30" stroke="#f0d08055" stroke-width="1" stroke-dasharray="4 5"/>
-      <g class="rt">
-        <line x1="36" y1="6"  x2="36" y2="16" stroke="#f0d080" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="36" y1="56" x2="36" y2="66" stroke="#f0d080" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="6"  y1="36" x2="16" y2="36" stroke="#f0d080" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="56" y1="36" x2="66" y2="36" stroke="#f0d080" stroke-width="1.8" stroke-linecap="round"/>
-      </g>
-      <circle cx="36" cy="36" r="3" fill="#f0d080" opacity=".95"/>
-    </svg>
-  </div>
-  <div id="spulse"></div>
-
-  <div id="tabs">
-    <div class="tab" id="tf">📐 FLOOR</div>
-    <div class="tab" id="tw">🧱 WALL</div>
+  <div id="tile-picker">
+    <div class="tile-thumb active" data-idx="0" style="background:linear-gradient(135deg,#c8922a,#f0d080,#a06010)"></div>
+    <div class="tile-thumb" data-idx="1" style="background:linear-gradient(135deg,#ccc,#e8e8e8,#aaa)"></div>
+    <div class="tile-thumb" data-idx="2" style="background:linear-gradient(135deg,#1a1a1a,#333,#222)"></div>
+    <div class="tile-thumb" data-idx="3" style="background:linear-gradient(135deg,#c87941,#e8a060,#a05020)"></div>
+    <div class="tile-thumb" data-idx="4" style="background:linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a)"></div>
   </div>
 
-  <div id="tp">
-    <div class="tt on" data-i="0" style="background:linear-gradient(135deg,#b07818,#f0d060,#886010)"></div>
-    <div class="tt" data-i="1" style="background:linear-gradient(135deg,#c0bcb4,#e4e0d8,#908c84)"></div>
-    <div class="tt" data-i="2" style="background:linear-gradient(135deg,#161616,#303030,#0a0a0a)"></div>
-    <div class="tt" data-i="3" style="background:linear-gradient(135deg,#a85c28,#d88848,#784018)"></div>
-    <div class="tt" data-i="4" style="background:linear-gradient(135deg,#1c4830,#386850,#0e2e1c)"></div>
+  <div id="size-control">
+    <span id="size-label">Size</span>
+    <input type="range" id="tile-size-slider" min="1" max="10" value="4" step="1"/>
   </div>
 
-  <div id="rp"><span class="pl">Size</span><input type="range" id="szsl" min="1" max="10" value="5" step="1"/></div>
-  <div id="lp"><span class="pl">Blend</span><input type="range" id="opsl" min="40" max="100" value="92" step="4"/></div>
+  <div id="opacity-control">
+    <span id="opacity-label">Blend</span>
+    <input type="range" id="opacity-slider" min="20" max="100" value="80" step="5"/>
+  </div>
 
-  <div id="ctrl">
-    <button class="cb" id="bcl">↺ Clear</button>
-    <button class="cb gold" id="bfl">⬛ Fill All</button>
+  <div id="controls">
+    <button class="ctrl-btn" onclick="resetAR()">↺ Reset</button>
+    <button class="ctrl-btn primary" id="place-btn" onclick="placeTile()">TAP TO PLACE</button>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-/* ================================================================
-   TILE VISION AR  v6 — FIXES
+<script type="importmap">
+{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
+</script>
 
-   FIX 1: TILES NO LONGER MOVE WITH PHONE
-   ─────────────────────────────────────────
-   Root cause: The tile group was being added to scene correctly,
-   but the ANCHOR position was being SET from hit-test data on
-   EVERY frame before the surface existed. Once anchored, the group
-   position is FROZEN — only paint() (mask update) is called after.
-   
-   The group.matrixAutoUpdate = false is set after anchor so Three.js
-   never recalculates world matrix from position/rotation — it stays
-   exactly where placed in world space.
+<script type="module">
+import * as THREE from 'three';
 
-   FIX 2: TILES FLUSH TO REAL FLOOR (no floating)
-   ─────────────────────────────────────────────────
-   Root cause: With local-floor reference space, Y=0 IS the detected
-   floor. But hit-test Y can still return small non-zero values (±1-3cm)
-   due to sensor noise.
+let renderer, scene, camera;
+let xrSession      = null;
+let hitTestSource  = null;
+let hitTestSourceRequested = false;
+let reticle;
+let floorGroup = null;   // world-anchored container — never moves after placement
+let floorMesh  = null;
+let floorPlaced = false;
+let currentTileIdx = 0;
+let tileOpacity    = 0.80;
 
-   Solution — THREE-LAYER approach:
-   a) Use local-floor refSpace → ARCore sets Y=0 at floor level
-   b) Collect 60 hit samples, take the MEDIAN (robust to outliers) 
-      as the floor Y. Median is much better than mean for noisy sensors.
-   c) Place tile plane at EXACTLY that median Y with no additional
-      offset. polygonOffset in clip-space handles z-fighting without
-      any world-space lift.
-   d) PlaneGeometry rotated -PI/2 lies in XZ plane (normal = +Y).
-      The plane mesh.position.y is set to 0 WITHIN the group, and
-      the group's world Y = calibrated floor Y.
-   e) depthWrite: false — prevents the tile from writing to depth
-      buffer, so it composites on top of the camera feed properly
-      without occluding real objects. polygonOffset still prevents
-      z-fighting in the depth test.
-
-   FIX 3: ANCHOR IS LOCKED, NOT RE-EVALUATED
-   ──────────────────────────────────────────
-   After anchor(), the SurfaceGroup records anchored=true.
-   Subsequent hits only call paint() to update the reveal mask.
-   The world position never changes.
-
-   FIX 4: WALL SURFACE PROPERLY ORIENTED
-   ──────────────────────────────────────
-   Wall surfaces use the full hit-test quaternion (no override),
-   so they sit flush on vertical surfaces too.
-================================================================ */
-
-const PATCH    = 3.0;   // metres — tile patch size
-const MRES     = 1024;  // mask canvas resolution
-const BPIX     = 130;   // brush radius in mask pixels
-const BSTEP    = 12;    // min move pixels before repainting
-const CALIB_N  = 60;    // Y samples to collect before anchoring (more = more accurate)
+// Raw col-major Float32Array of the hit-test pose — captured every frame
+let latestHitMatrix = null;
 
 const TILES = [
-  {base:'#c8a84b',grout:'#5a3c0e',sheen:.32,grain:.040,spec:.24},
-  {base:'#ddd8d0',grout:'#9a9590',sheen:.54,grain:.016,spec:.46},
-  {base:'#2c2c2c',grout:'#0e0e0e',sheen:.15,grain:.068,spec:.09},
-  {base:'#c47845',grout:'#6e3018',sheen:.13,grain:.076,spec:.08},
-  {base:'#3a7a52',grout:'#163024',sheen:.09,grain:.048,spec:.11},
+  { name:'Gold',       base:'#c8a84b', grout:'#6b4c1e', sheen:0.30 },
+  { name:'Marble',     base:'#ddd8d0', grout:'#9a9590', sheen:0.50 },
+  { name:'Charcoal',   base:'#2e2e2e', grout:'#111111', sheen:0.18 },
+  { name:'Terracotta', base:'#c97b4b', grout:'#7a3e1e', sheen:0.14 },
+  { name:'Green',      base:'#3d7a52', grout:'#1a3d28', sheen:0.10 },
 ];
 
-let renderer, scene, camera, reticle;
-let xrSession=null, htSrc=null, htDone=false;
-let refSpace=null, hasFloor=false;
+// ─── Helpers ───────────────────────────────────────────────────────────────
+const cl = v => Math.max(0, Math.min(255, v));
+const hexToRgb = h => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+const lighten  = (h,a) => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
+const darken   = (h,a) => lighten(h, -a);
 
-// Floor calibration state
-let calibSamples = [];
-let floorY       = null;
-let calibrated   = false;
-
-let fSurf=null, wSurf=null;
-let lastHit=null, lastType=null;
-let curTile=0, tileOp=0.92;
-
-/* ── median helper (robust against outliers vs mean) ──────────── */
-function median(arr){
-  const s=[...arr].sort((a,b)=>a-b);
-  const m=Math.floor(s.length/2);
-  return s.length%2?s[m]:(s[m-1]+s[m])/2;
-}
-
-/* ── colour utils ─────────────────────────────────────────────── */
-const clamp=v=>Math.max(0,Math.min(255,v));
-const hexRgb=h=>{const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255]};
-const rgbHex=(r,g,b)=>'#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
-const lite=(h,a)=>{const[r,g,b]=hexRgb(h);return rgbHex(clamp(r+255*a),clamp(g+255*a),clamp(b+255*a))};
-const dark=(h,a)=>lite(h,-a);
-
-function rrect(ctx,x,y,w,h,r){
+function rRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
 }
-function applyGrain(ctx,x,y,w,h,a){
-  const id=ctx.getImageData(x,y,w,h),d=id.data;
-  for(let i=0;i<d.length;i+=4){
-    const n=(Math.random()-.5)*255*a;
-    d[i]=clamp(d[i]+n);d[i+1]=clamp(d[i+1]+n);d[i+2]=clamp(d[i+2]+n);
+function addGrain(ctx, x, y, w, h, amt) {
+  const id = ctx.getImageData(x,y,w,h), d = id.data;
+  for (let i = 0; i < d.length; i+=4) {
+    const n = (Math.random()-0.5)*255*amt;
+    d[i]=cl(d[i]+n); d[i+1]=cl(d[i+1]+n); d[i+2]=cl(d[i+2]+n);
   }
-  ctx.putImageData(id,x,y);
+  ctx.putImageData(id, x, y);
 }
 
-function makeTex(idx){
-  const SZ=512,G=8,N=2,tw=SZ/N;
-  const cv=document.createElement('canvas');cv.width=cv.height=SZ;
-  const ctx=cv.getContext('2d'),t=TILES[idx];
-  ctx.fillStyle=t.grout;ctx.fillRect(0,0,SZ,SZ);
-  for(let row=0;row<N;row++)for(let col=0;col<N;col++){
-    const x=col*tw+G/2,y=row*tw+G/2,w=tw-G,h=tw-G;
-    const g1=ctx.createLinearGradient(x,y,x+w,y+h);
-    g1.addColorStop(0,lite(t.base,.16));g1.addColorStop(.4,t.base);g1.addColorStop(1,dark(t.base,.14));
-    ctx.fillStyle=g1;rrect(ctx,x,y,w,h,6);ctx.fill();
-    applyGrain(ctx,Math.round(x),Math.round(y),Math.round(w),Math.round(h),t.grain);
-    const g2=ctx.createLinearGradient(x,y,x+w*.55,y+h*.55);
-    g2.addColorStop(0,`rgba(255,255,255,${t.sheen})`);
-    g2.addColorStop(.5,`rgba(255,255,255,${t.sheen*.18})`);
-    g2.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g2;rrect(ctx,x,y,w,h,6);ctx.fill();
-    const g3=ctx.createLinearGradient(x+3,y+3,x+w*.28,y+h*.28);
-    g3.addColorStop(0,`rgba(255,255,255,${t.spec})`);g3.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g3;rrect(ctx,x+2,y+2,w*.24,h*.24,4);ctx.fill();
-    const g4=ctx.createLinearGradient(x+w,y+h,x+w-14,y+h-14);
-    g4.addColorStop(0,'rgba(0,0,0,.20)');g4.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g4;rrect(ctx,x,y,w,h,6);ctx.fill();
-    ctx.strokeStyle=`rgba(255,255,255,${t.sheen*.4})`;ctx.lineWidth=1.5;
-    rrect(ctx,x+1,y+1,w-2,h-2,5);ctx.stroke();
+// ─── Tile texture ──────────────────────────────────────────────────────────
+function makeTileTexture(idx) {
+  const SZ = 512, GROUT = 6, N = 2;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = SZ;
+  const ctx = cv.getContext('2d');
+  const t = TILES[idx];
+  const tw = SZ / N;
+
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const x = col*tw + GROUT/2, y = row*tw + GROUT/2;
+      const w = tw - GROUT,       h = tw - GROUT;
+      const grd = ctx.createLinearGradient(x,y,x+w,y+h);
+      grd.addColorStop(0.0, lighten(t.base, 0.12));
+      grd.addColorStop(0.5, t.base);
+      grd.addColorStop(1.0, darken(t.base, 0.10));
+      ctx.fillStyle = grd;
+      rRect(ctx,x,y,w,h,4); ctx.fill();
+      addGrain(ctx,x,y,w,h,0.04);
+      const hi = ctx.createLinearGradient(x,y,x+w*0.6,y+h*0.6);
+      hi.addColorStop(0, `rgba(255,255,255,${t.sheen})`);
+      hi.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hi;
+      rRect(ctx,x,y,w,h,4); ctx.fill();
+    }
   }
-  const tex=new THREE.CanvasTexture(cv);
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  ctx.fillStyle = t.grout;
+  for (let i = 0; i <= N; i++) {
+    ctx.fillRect(0, i*tw - GROUT/2, SZ, GROUT);
+    ctx.fillRect(i*tw - GROUT/2, 0, GROUT, SZ);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   return tex;
 }
 
-/* ── SurfaceGroup ─────────────────────────────────────────────── */
-class SurfaceGroup{
-  constructor(type){
-    this.type=type;
-    this.anchored=false;  // ← KEY: once true, world position never changes
-    this.group=new THREE.Group();
-    this.mesh=null;this.bord=null;this._tex=null;
-    this._lpx=null;this._lpy=null;
+// ─── Build / rebuild the mesh inside the fixed anchor group ───────────────
+function buildFloorMesh(sizeM) {
+  if (!floorGroup) return;
 
-    this.mcv=document.createElement('canvas');
-    this.mcv.width=this.mcv.height=MRES;
-    this.mctx=this.mcv.getContext('2d');
-    this.mctx.fillStyle='black';
-    this.mctx.fillRect(0,0,MRES,MRES);
-    this.mtex=new THREE.CanvasTexture(this.mcv);
+  if (floorMesh) {
+    floorGroup.remove(floorMesh);
+    floorMesh.geometry.dispose();
+    if (floorMesh.material.map) floorMesh.material.map.dispose();
+    floorMesh.material.dispose();
+    floorMesh = null;
   }
+
+  // Tile physical size from slider (0.1 m – 0.6 m per tile)
+  const tileM = parseFloat(document.getElementById('tile-size-slider').value) * 0.05 + 0.1;
+  const tex = makeTileTexture(currentTileIdx);
+  // Texture covers 2×2 tiles; calculate repeat so tiles are the right size
+  const rep = sizeM / (tileM * 2);
+  tex.repeat.set(rep, rep);
 
   /*
-   * anchor() is called ONCE per surface.
-   * After this, the group's world transform is frozen.
+   *  WHY MeshBasicMaterial + polygonOffset instead of MeshStandardMaterial + Y nudge:
    *
-   * For FLOOR:
-   *   - We ignore the hit-test X/Z to avoid placing the patch far away.
-   *     Instead we centre the patch at the camera's X/Z projected down
-   *     to the calibrated floor Y. This puts tiles right under the camera.
-   *   - We use the calibrated median Y (floorY) as the Y position.
-   *   - Quaternion is identity (perfectly level).
+   *  MeshStandardMaterial responds to scene lights, making the tile look
+   *  brighter or darker than the real floor under the phone's actual lighting
+   *  → tile looks "pasted on top".
    *
-   * For WALL:
-   *   - We use the full hit-test position and quaternion.
+   *  MeshBasicMaterial ignores lights entirely, so its colour comes straight
+   *  from the texture. The real floor's reflected light is already in the
+   *  camera feed. Combined with opacity the result feels like the tile IS
+   *  the floor rather than floating above it.
+   *
+   *  polygonOffset (factor=-2, units=-2) nudges the tile toward the camera
+   *  in clip space — no actual Y movement, so it never lifts off the surface.
+   *  It purely resolves the z-fighting that happens when two surfaces share
+   *  the exact same depth value.
+   *
+   *  depthWrite:true  — the tile writes depth so objects in front of it
+   *                     (chair legs, feet) correctly occlude the tile edges.
    */
-  anchor(m16, camPose){
-    if(this.anchored) return;
-    this.anchored=true;
+  const mat = new THREE.MeshBasicMaterial({
+    map:                 tex,
+    transparent:         true,
+    opacity:             tileOpacity,
+    depthWrite:          true,
+    depthTest:           true,
+    polygonOffset:       true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits:  -2,
+    side:                THREE.FrontSide,
+  });
 
-    const m4=new THREE.Matrix4().fromArray(m16);
-    const pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scl=new THREE.Vector3();
-    m4.decompose(pos,quat,scl);
-
-    if(this.type==='floor'){
-      /*
-       * FLUSH TO FLOOR:
-       * Use camera X/Z so the patch is centred around where the user is standing.
-       * Use calibrated median Y as the exact floor height.
-       * Force identity rotation so the plane is perfectly horizontal.
-       */
-      if(camPose){
-        const cm=new THREE.Matrix4().fromArray(camPose);
-        const cp=new THREE.Vector3();cp.setFromMatrixPosition(cm);
-        pos.x = cp.x;
-        pos.z = cp.z;
-      }
-      // Calibrated floor Y — this is the exact real floor height
-      pos.y = (floorY !== null) ? floorY : 0;
-      // Perfect horizontal
-      quat.set(0,0,0,1);
-    }
-
-    this.group.position.copy(pos);
-    this.group.quaternion.copy(quat);
-    // Freeze: matrixAutoUpdate=false means Three.js won't recalculate
-    // world matrix each frame — position is locked in world space
-    this.group.matrixAutoUpdate=false;
-    this.group.updateMatrix();
-    scene.add(this.group);
-    this.group.updateMatrixWorld(true);
-    this._build();
-    this._initReveal();
-  }
-
-  _initReveal(){
-    const initR=BPIX*1.8;
-    const cx=MRES/2, cy=MRES/2;
-    const g=this.mctx.createRadialGradient(cx,cy,0,cx,cy,initR);
-    g.addColorStop(0,'rgba(255,255,255,1)');
-    g.addColorStop(0.7,'rgba(255,255,255,0.95)');
-    g.addColorStop(1,'rgba(255,255,255,0)');
-    this.mctx.fillStyle=g;
-    this.mctx.beginPath();this.mctx.arc(cx,cy,initR,0,Math.PI*2);this.mctx.fill();
-    this.mtex.needsUpdate=true;
-    this._lpx=MRES/2;this._lpy=MRES/2;
-  }
-
-  _build(){
-    if(this.mesh){this.group.remove(this.mesh);this.mesh.geometry.dispose();this.mesh.material.dispose()}
-    if(this.bord){this.group.remove(this.bord);this.bord.geometry.dispose();this.bord.material.dispose()}
-    if(this._tex)this._tex.dispose();
-
-    const sv=parseFloat(document.getElementById('szsl').value);
-    const tm=sv*0.05+0.10;
-    this._tex=makeTex(curTile);
-    this._tex.repeat.set(PATCH/(tm*2),PATCH/(tm*2));
-
-    const mat=new THREE.MeshBasicMaterial({
-      map:this._tex,
-      alphaMap:this.mtex,
-      transparent:true,
-      opacity:tileOp,
-      /*
-       * depthWrite: false — critical for AR compositing.
-       * The tile should NOT write to the depth buffer. 
-       * Real-world objects (from ARCore depth) will naturally
-       * occlude correctly because we're compositing over the camera feed.
-       * depthTest: true still prevents the tile from drawing over
-       * objects that are in FRONT of it in 3D space.
-       */
-      depthWrite:false,
-      depthTest:true,
-      polygonOffset:true,
-      polygonOffsetFactor:-4,
-      polygonOffsetUnits:-4,
-      side:THREE.FrontSide,
-    });
-
-    const geo=new THREE.PlaneGeometry(PATCH,PATCH);
-    this.mesh=new THREE.Mesh(geo,mat);
-    // Rotate so plane lies flat (world XZ plane, normal = +Y)
-    this.mesh.rotation.x=-Math.PI/2;
-    // ZERO local Y — the group's world Y is already set to floor level
-    this.mesh.position.y=0;
-    this.group.add(this.mesh);
-
-    const bg=new THREE.EdgesGeometry(new THREE.PlaneGeometry(PATCH,PATCH));
-    this.bord=new THREE.LineSegments(bg,new THREE.LineBasicMaterial({
-      color:0xf0d080,transparent:true,opacity:0.20,depthWrite:false,
-    }));
-    this.bord.rotation.x=-Math.PI/2;
-    this.bord.position.y=0.0002;
-    this.group.add(this.bord);
-  }
-
-  /*
-   * paint() maps a world-space hit point into the mask UV.
-   * The group world matrix is frozen so worldToLocal always gives
-   * the correct local coords relative to the anchored position.
-   */
-  paint(m16){
-    const wp=new THREE.Vector3(m16[12],m16[13],m16[14]);
-    // worldToLocal: inverse of the frozen world matrix
-    const loc=this.group.worldToLocal(wp.clone());
-
-    const u=loc.x/PATCH+0.5;
-    const v=loc.z/PATCH+0.5;
-    const px=u*MRES, py=v*MRES;
-
-    if(this._lpx!==null){
-      const dx=px-this._lpx,dy=py-this._lpy;
-      if(dx*dx+dy*dy<BSTEP*BSTEP)return;
-    }
-    this._lpx=px;this._lpy=py;
-    if(px<-BPIX||px>MRES+BPIX||py<-BPIX||py>MRES+BPIX)return;
-
-    const g=this.mctx.createRadialGradient(px,py,0,px,py,BPIX);
-    g.addColorStop(0,'rgba(255,255,255,1)');
-    g.addColorStop(0.55,'rgba(255,255,255,0.98)');
-    g.addColorStop(0.85,'rgba(255,255,255,0.5)');
-    g.addColorStop(1,'rgba(255,255,255,0)');
-    this.mctx.fillStyle=g;
-    this.mctx.beginPath();this.mctx.arc(px,py,BPIX,0,Math.PI*2);this.mctx.fill();
-    this.mtex.needsUpdate=true;
-  }
-
-  fillAll(){
-    this.mctx.fillStyle='white';this.mctx.fillRect(0,0,MRES,MRES);
-    this.mtex.needsUpdate=true;
-  }
-  rebuild(){this._build()}
-  setOp(op){if(this.mesh)this.mesh.material.opacity=op}
-  dispose(){
-    if(this.mesh){this.mesh.geometry.dispose();this.mesh.material.dispose();this.group.remove(this.mesh)}
-    if(this.bord){this.bord.geometry.dispose();this.bord.material.dispose();this.group.remove(this.bord)}
-    if(this._tex)this._tex.dispose();
-    this.mtex.dispose();
-    if(scene)scene.remove(this.group);
-  }
+  const geo = new THREE.PlaneGeometry(sizeM, sizeM);
+  floorMesh = new THREE.Mesh(geo, mat);
+  // PlaneGeometry faces +Z by default; rotate to lie flat on XZ plane
+  floorMesh.rotation.x = -Math.PI / 2;
+  // Zero local offset — the group already sits at the exact floor Y
+  floorMesh.renderOrder = 0;
+  floorGroup.add(floorMesh);
 }
 
-function classify(m16){
-  // Column 1 of column-major matrix is the surface normal's Y component
-  // >0.5 means roughly horizontal = floor, else wall
-  return Math.abs(m16[5])>0.5?'floor':'wall';
+// ─── Place tile ────────────────────────────────────────────────────────────
+function placeTile() {
+  if (!latestHitMatrix) { setStatus('Point at the floor first'); return; }
+
+  // Decompose the hit-test pose matrix → world position + orientation
+  const m4  = new THREE.Matrix4().fromArray(latestHitMatrix);
+  const pos  = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const scl  = new THREE.Vector3();
+  m4.decompose(pos, quat, scl);
+
+  // Remove any previous placement
+  if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
+
+  floorGroup = new THREE.Group();
+
+  // ★ Position the group at EXACTLY the hit surface — no Y adjustments
+  floorGroup.position.copy(pos);
+
+  // Keep the group rotation flat (identity) — we don't want to inherit
+  // any tilt from the hit-test normal on slightly uneven floors.
+  // This also means the tile stays perfectly horizontal even if the camera
+  // was angled when the user tapped.
+  floorGroup.quaternion.identity();
+
+  scene.add(floorGroup);
+
+  const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.5;
+  buildFloorMesh(sizeM);
+
+  floorPlaced = true;
+  reticle.visible = false;
+  document.getElementById('reticle-ring').style.opacity = '0';
+  document.getElementById('place-btn').textContent = '✓ PLACED';
+  setStatus('Tile placed — walk around to inspect!');
 }
+window.placeTile = placeTile;
 
-/* ── Three.js init ──────────────────────────────────────────────── */
-function initThree(){
-  scene=new THREE.Scene();
-  camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,50);
-  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(innerWidth,innerHeight);
-  renderer.xr.enabled=true;
-  renderer.setClearColor(0x000000,0);
-  document.getElementById('c').appendChild(renderer.domElement);
+function resetAR() {
+  if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
+  floorPlaced     = false;
+  latestHitMatrix = null;
+  reticle.visible = false;
+  document.getElementById('reticle-ring').style.opacity = '1';
+  document.getElementById('place-btn').textContent = 'TAP TO PLACE';
+  setStatus('Move phone slowly over the floor…');
+}
+window.resetAR = resetAR;
 
-  const rg=new THREE.RingGeometry(0.05,0.08,40);
-  rg.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI/2));
-  reticle=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({
-    color:0xf0d080,side:THREE.DoubleSide,depthWrite:false,transparent:true,opacity:0.9,
+// ─── Three.js bootstrap ───────────────────────────────────────────────────
+function initThree() {
+  scene    = new THREE.Scene();
+  camera   = new THREE.PerspectiveCamera();
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  renderer.setClearColor(0x000000, 0);
+  renderer.sortObjects = true;
+
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  // Minimal light — only affects reticle (MeshBasicMaterial ignores lights)
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+
+  // Reticle — thin ring lying on the floor, updated from hit-test every frame
+  const rGeo = new THREE.RingGeometry(0.06, 0.09, 36);
+  rGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  reticle = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({
+    color:       0xf0d080,
+    side:        THREE.DoubleSide,
+    depthWrite:  false,
+    transparent: true,
+    opacity:     0.9,
   }));
-  reticle.matrixAutoUpdate=false;
-  reticle.visible=false;
+  reticle.matrixAutoUpdate = false;
+  reticle.visible = false;
   scene.add(reticle);
 }
 
-/* ── AR session ─────────────────────────────────────────────────── */
-async function startAR(){
-  if(!navigator.xr){showNS();return}
-  let ok=false;
-  try{ok=await navigator.xr.isSessionSupported('immersive-ar')}catch(e){}
-  if(!ok){showNS();return}
+// ─── AR session ───────────────────────────────────────────────────────────
+async function startAR() {
+  if (!navigator.xr) { showNotSupported(); return; }
+  const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+  if (!supported) { showNotSupported(); return; }
 
-  document.getElementById('landing').style.display='none';
+  document.getElementById('landing').style.display = 'none';
   initThree();
 
-  let sess;
-  try{
-    sess=await navigator.xr.requestSession('immersive-ar',{
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay','local-floor'],
-      domOverlay:{root:document.getElementById('hud')},
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.getElementById('hud') }
     });
-  }catch(e){showNS();return}
-  xrSession=sess;
-
-  renderer.xr.setReferenceSpaceType('local-floor');
-  await renderer.xr.setSession(sess);
-
-  try{
-    refSpace=await sess.requestReferenceSpace('local-floor');
-    hasFloor=true;
-  }catch(e){
-    refSpace=await sess.requestReferenceSpace('local');
-    hasFloor=false;
+  } catch (e) {
+    try {
+      xrSession = await navigator.xr.requestSession('immersive-ar', {
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.getElementById('hud') }
+      });
+    } catch (e2) { showNotSupported(); return; }
   }
 
-  sess.addEventListener('end',onEnd);
-  document.getElementById('hud').style.display='block';
-  renderer.setAnimationLoop(onFrame);
+  renderer.xr.setReferenceSpaceType('local');
+  await renderer.xr.setSession(xrSession);
+
+  xrSession.addEventListener('end', () => {
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('landing').style.display = 'flex';
+    hitTestSource = null; hitTestSourceRequested = false;
+    floorPlaced = false; floorGroup = null; floorMesh = null; latestHitMatrix = null;
+  });
+
+  document.getElementById('hud').style.display = 'block';
+  renderer.setAnimationLoop(onXRFrame);
   setupUI();
-  setSt('Hold phone level — calibrating floor…');
-  document.getElementById('calib-bar').classList.add('show');
 }
+window.startAR = startAR;
 
-function onEnd(){
-  document.getElementById('hud').style.display='none';
-  document.getElementById('landing').style.display='flex';
-  cleanAll();htSrc=null;htDone=false;refSpace=null;
-  lastHit=null;lastType=null;calibSamples=[];floorY=null;calibrated=false;
-}
+// ─── Render loop ──────────────────────────────────────────────────────────
+function onXRFrame(time, frame) {
+  if (!frame) return;
 
-/* ── XR frame loop ─────────────────────────────────────────────── */
-function onFrame(t,frame){
-  if(!frame)return;
+  const session  = frame.session;
+  const refSpace = renderer.xr.getReferenceSpace();
 
-  // Request hit-test source once
-  if(!htDone){
-    htDone=true;
-    frame.session.requestReferenceSpace('viewer')
-      .then(vs=>frame.session.requestHitTestSource({space:vs}))
-      .then(s=>{htSrc=s;})
-      .catch(()=>setSt('Hit-test unavailable'));
+  if (!hitTestSourceRequested) {
+    session.requestReferenceSpace('viewer').then(vs => {
+      session.requestHitTestSource({ space: vs })
+        .then(src => { hitTestSource = src; })
+        .catch(() => setStatus('Hit-test unavailable'));
+    });
+    hitTestSourceRequested = true;
   }
 
-  // Get camera pose in the reference space (used for floor patch centering)
-  let camPoseMatrix=null;
-  const camPose=frame.getViewerPose(refSpace);
-  if(camPose && camPose.views.length>0){
-    camPoseMatrix=Array.from(camPose.views[0].transform.matrix);
-  }
-
-  if(htSrc&&refSpace){
-    const hits=frame.getHitTestResults(htSrc);
-    if(hits.length){
-      const pose=hits[0].getPose(refSpace);
-      if(pose){
-        lastHit=Array.from(pose.transform.matrix);
-        const tp=classify(lastHit);
-
-        // ── FLOOR CALIBRATION ──────────────────────────────────────
-        if(tp==='floor' && !calibrated){
-          const hitY=lastHit[13];
-          calibSamples.push(hitY);
-
-          const pct=calibSamples.length/CALIB_N;
-          document.getElementById('calib-fill').style.width=(pct*100)+'%';
-          setSt(`Calibrating floor… ${Math.round(pct*100)}%`);
-
-          // Show reticle so user knows sensor is working
-          reticle.visible=true;
-          reticle.matrix.fromArray(lastHit);
-
-          if(calibSamples.length>=CALIB_N){
-            // MEDIAN (not mean) — robust against outlier spikes
-            floorY=median(calibSamples);
-            calibrated=true;
-            document.getElementById('calib-bar').classList.remove('show');
-            setSt('✓ Floor locked — sweep to paint tiles');
-            showBadge('floor');
-          }
-
-          renderer.render(scene,camera);
-          return;
-        }
-
-        if(tp!==lastType){lastType=tp;showBadge(tp)}
-
-        reticle.visible=true;
-        reticle.matrix.fromArray(lastHit);
-        document.getElementById('rcss').classList.add('on');
-        document.getElementById('spulse').classList.add('on');
-        setSt(tp==='floor'?'📐 Floor — sweep to paint':'🧱 Wall — sweep to paint');
-
-        let surf=tp==='floor'?fSurf:wSurf;
-        if(!surf){
-          surf=new SurfaceGroup(tp);
-          surf.anchor(lastHit, camPoseMatrix);
-          if(tp==='floor')fSurf=surf;else wSurf=surf;
-          updTabs();
-        } else {
-          // Surface already anchored — only update the paint mask,
-          // never touch the world position again
-          surf.paint(lastHit);
-        }
+  // While not yet placed: drive reticle from hit-test and cache the matrix
+  if (hitTestSource && refSpace && !floorPlaced) {
+    const hits = frame.getHitTestResults(hitTestSource);
+    if (hits.length > 0) {
+      const pose = hits[0].getPose(refSpace);
+      if (pose) {
+        // Cache as a proper JS Array so it doesn't get recycled by the XR runtime
+        latestHitMatrix = Array.from(pose.transform.matrix);
+        reticle.visible = true;
+        reticle.matrix.fromArray(latestHitMatrix);
+        setStatus('Floor detected — tap PLACE!');
       }
-    }else{
-      reticle.visible=false;
-      document.getElementById('rcss').classList.remove('on');
-      document.getElementById('spulse').classList.remove('on');
-      if(!calibrated){
-        setSt('Point at your floor to calibrate…');
-      } else {
-        setSt('Move phone slowly over the floor…');
-      }
+    } else {
+      latestHitMatrix = null;
+      reticle.visible = false;
+      setStatus('Move phone slowly over the floor…');
     }
   }
-  renderer.render(scene,camera);
+
+  renderer.render(scene, camera);
 }
 
-/* ── controls ───────────────────────────────────────────────────── */
-function fillAll(){
-  if(!fSurf&&!wSurf){setSt('Scan a surface first!');return}
-  fSurf?.fillAll();wSurf?.fillAll();setSt('✓ Filled — walk around to inspect');
-}
-function clearAll(){
-  cleanAll();lastHit=null;lastType=null;
-  calibSamples=[];floorY=null;calibrated=false;
-  if(reticle)reticle.visible=false;
-  document.getElementById('rcss').classList.remove('on');
-  document.getElementById('spulse').classList.remove('on');
-  document.getElementById('calib-fill').style.width='0%';
-  document.getElementById('calib-bar').classList.add('show');
-  showBadge(null);updTabs();
-  setSt('Recalibrating floor — hold phone level…');
-}
-function cleanAll(){fSurf?.dispose();fSurf=null;wSurf?.dispose();wSurf=null}
-
-function setupUI(){
-  document.querySelectorAll('.tt').forEach(el=>{
-    el.addEventListener('click',()=>{
-      document.querySelectorAll('.tt').forEach(t=>t.classList.remove('on'));
-      el.classList.add('on');curTile=parseInt(el.dataset.i);
-      fSurf?.rebuild();wSurf?.rebuild();
+// ─── UI ───────────────────────────────────────────────────────────────────
+function setupUI() {
+  document.querySelectorAll('.tile-thumb').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tile-thumb').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      currentTileIdx = parseInt(el.dataset.idx);
+      if (floorGroup) buildFloorMesh(parseFloat(document.getElementById('tile-size-slider').value) * 0.5);
     });
   });
-  document.getElementById('szsl').addEventListener('input',()=>{fSurf?.rebuild();wSurf?.rebuild()});
-  document.getElementById('opsl').addEventListener('input',e=>{
-    tileOp=parseFloat(e.target.value)/100;fSurf?.setOp(tileOp);wSurf?.setOp(tileOp);
+
+  document.getElementById('tile-size-slider').addEventListener('input', e => {
+    if (floorGroup) buildFloorMesh(parseFloat(e.target.value) * 0.5);
   });
-  document.getElementById('bcl').addEventListener('click',clearAll);
-  document.getElementById('bfl').addEventListener('click',fillAll);
+
+  document.getElementById('opacity-slider').addEventListener('input', e => {
+    tileOpacity = parseFloat(e.target.value) / 100;
+    if (floorMesh) floorMesh.material.opacity = tileOpacity;
+  });
 }
 
-function showBadge(tp){
-  const el=document.getElementById('badge');el.className='';
-  if(!tp)return;
-  el.textContent=tp==='floor'?'📐 FLOOR':'🧱 WALL';el.classList.add(tp,'show');
+function setStatus(msg) { const el = document.getElementById('status'); if (el) el.textContent = msg; }
+function showNotSupported() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('not-supported').style.display = 'flex';
 }
-function updTabs(){
-  document.getElementById('tf').className='tab'+(fSurf?' fon':'');
-  document.getElementById('tw').className='tab'+(wSurf?' won':'');
-}
-function setSt(m){const el=document.getElementById('st');if(el)el.textContent=m}
-function showNS(){document.getElementById('landing').style.display='none';document.getElementById('ns').style.display='flex'}
 
-window.addEventListener('resize',()=>{
-  if(renderer)renderer.setSize(innerWidth,innerHeight);
-  if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
-});
-
-document.getElementById('sbtn').addEventListener('click',startAR);
+window.addEventListener('resize', () => { if (renderer) renderer.setSize(window.innerWidth, window.innerHeight); });
 </script>
 </body>
 </html>
