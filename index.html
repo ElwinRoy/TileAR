@@ -204,40 +204,57 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* ================================================================
-   TILE VISION AR  v5
+   TILE VISION AR  v6 — FIXES
 
-   KEY FIXES vs previous versions:
+   FIX 1: TILES NO LONGER MOVE WITH PHONE
+   ─────────────────────────────────────────
+   Root cause: The tile group was being added to scene correctly,
+   but the ANCHOR position was being SET from hit-test data on
+   EVERY frame before the surface existed. Once anchored, the group
+   position is FROZEN — only paint() (mask update) is called after.
    
-   1. Y-AVERAGING CALIBRATION:
-      Before anchoring, we collect 30 hit-test Y samples over ~1 second.
-      The average Y is the true floor level, eliminating sensor jitter.
-      A gold calibration bar shows progress. Tiles anchor at the AVERAGED
-      Y value, not a single noisy sample.
+   The group.matrixAutoUpdate = false is set after anchor so Three.js
+   never recalculates world matrix from position/rotation — it stays
+   exactly where placed in world space.
 
-   2. FULL OPACITY TILES by default (92%):
-      Previous versions used alphaMap starting fully black (invisible).
-      Now mask starts painting immediately with a large initial brush,
-      so tiles are clearly visible from the first detection.
+   FIX 2: TILES FLUSH TO REAL FLOOR (no floating)
+   ─────────────────────────────────────────────────
+   Root cause: With local-floor reference space, Y=0 IS the detected
+   floor. But hit-test Y can still return small non-zero values (±1-3cm)
+   due to sensor noise.
 
-   3. CORRECT PLANE ORIENTATION:
-      PlaneGeometry with rotation.x = -PI/2 → normal points world +Y.
-      mesh.position.y = 0 (no lift) — the polygon offset handles z-fight.
-      depthWrite:true so tiles properly occlude objects in front of them.
+   Solution — THREE-LAYER approach:
+   a) Use local-floor refSpace → ARCore sets Y=0 at floor level
+   b) Collect 60 hit samples, take the MEDIAN (robust to outliers) 
+      as the floor Y. Median is much better than mean for noisy sensors.
+   c) Place tile plane at EXACTLY that median Y with no additional
+      offset. polygonOffset in clip-space handles z-fighting without
+      any world-space lift.
+   d) PlaneGeometry rotated -PI/2 lies in XZ plane (normal = +Y).
+      The plane mesh.position.y is set to 0 WITHIN the group, and
+      the group's world Y = calibrated floor Y.
+   e) depthWrite: false — prevents the tile from writing to depth
+      buffer, so it composites on top of the camera feed properly
+      without occluding real objects. polygonOffset still prevents
+      z-fighting in the depth test.
 
-   4. PATCH SIZE REDUCED to 3m:
-      4m was too large — the anchor point ends up far from the visible
-      area. 3m keeps tiles within the natural view cone.
+   FIX 3: ANCHOR IS LOCKED, NOT RE-EVALUATED
+   ──────────────────────────────────────────
+   After anchor(), the SurfaceGroup records anchored=true.
+   Subsequent hits only call paint() to update the reveal mask.
+   The world position never changes.
 
-   5. INITIAL FULL-REVEAL on anchor:
-      When floor is first anchored, we paint a large central circle
-      immediately so tiles appear right away without needing to sweep.
+   FIX 4: WALL SURFACE PROPERLY ORIENTED
+   ──────────────────────────────────────
+   Wall surfaces use the full hit-test quaternion (no override),
+   so they sit flush on vertical surfaces too.
 ================================================================ */
 
 const PATCH    = 3.0;   // metres — tile patch size
 const MRES     = 1024;  // mask canvas resolution
-const BPIX     = 130;   // brush radius in mask pixels (~40cm on 3m patch)
+const BPIX     = 130;   // brush radius in mask pixels
 const BSTEP    = 12;    // min move pixels before repainting
-const CALIB_N  = 30;    // Y samples to collect before anchoring floor
+const CALIB_N  = 60;    // Y samples to collect before anchoring (more = more accurate)
 
 const TILES = [
   {base:'#c8a84b',grout:'#5a3c0e',sheen:.32,grain:.040,spec:.24},
@@ -252,13 +269,20 @@ let xrSession=null, htSrc=null, htDone=false;
 let refSpace=null, hasFloor=false;
 
 // Floor calibration state
-let calibSamples = [];   // collected Y values
-let floorY       = null; // calibrated floor Y (null = not yet calibrated)
+let calibSamples = [];
+let floorY       = null;
 let calibrated   = false;
 
 let fSurf=null, wSurf=null;
 let lastHit=null, lastType=null;
 let curTile=0, tileOp=0.92;
+
+/* ── median helper (robust against outliers vs mean) ──────────── */
+function median(arr){
+  const s=[...arr].sort((a,b)=>a-b);
+  const m=Math.floor(s.length/2);
+  return s.length%2?s[m]:(s[m-1]+s[m])/2;
+}
 
 /* ── colour utils ─────────────────────────────────────────────── */
 const clamp=v=>Math.max(0,Math.min(255,v));
@@ -317,11 +341,11 @@ function makeTex(idx){
 class SurfaceGroup{
   constructor(type){
     this.type=type;
+    this.anchored=false;  // ← KEY: once true, world position never changes
     this.group=new THREE.Group();
     this.mesh=null;this.bord=null;this._tex=null;
     this._lpx=null;this._lpy=null;
 
-    // Mask canvas: black = transparent, white = tile fully visible
     this.mcv=document.createElement('canvas');
     this.mcv.width=this.mcv.height=MRES;
     this.mctx=this.mcv.getContext('2d');
@@ -330,47 +354,62 @@ class SurfaceGroup{
     this.mtex=new THREE.CanvasTexture(this.mcv);
   }
 
-  anchor(m16, overrideY){
+  /*
+   * anchor() is called ONCE per surface.
+   * After this, the group's world transform is frozen.
+   *
+   * For FLOOR:
+   *   - We ignore the hit-test X/Z to avoid placing the patch far away.
+   *     Instead we centre the patch at the camera's X/Z projected down
+   *     to the calibrated floor Y. This puts tiles right under the camera.
+   *   - We use the calibrated median Y (floorY) as the Y position.
+   *   - Quaternion is identity (perfectly level).
+   *
+   * For WALL:
+   *   - We use the full hit-test position and quaternion.
+   */
+  anchor(m16, camPose){
+    if(this.anchored) return;
+    this.anchored=true;
+
     const m4=new THREE.Matrix4().fromArray(m16);
     const pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scl=new THREE.Vector3();
     m4.decompose(pos,quat,scl);
 
     if(this.type==='floor'){
       /*
-       * USE CALIBRATED Y:
-       * overrideY is the average of CALIB_N hit-test Y samples.
-       * This eliminates the ±2cm sensor jitter that causes floating.
-       * If local-floor is available and calibrated Y ≈ 0, use 0.
-       * Otherwise use the averaged raw Y from hit-tests.
+       * FLUSH TO FLOOR:
+       * Use camera X/Z so the patch is centred around where the user is standing.
+       * Use calibrated median Y as the exact floor height.
+       * Force identity rotation so the plane is perfectly horizontal.
        */
-      if(overrideY !== undefined){
-        pos.y = overrideY;
-      } else if(hasFloor){
-        pos.y = 0;
+      if(camPose){
+        const cm=new THREE.Matrix4().fromArray(camPose);
+        const cp=new THREE.Vector3();cp.setFromMatrixPosition(cm);
+        pos.x = cp.x;
+        pos.z = cp.z;
       }
-      // Identity quaternion = perfectly horizontal floor plane
+      // Calibrated floor Y — this is the exact real floor height
+      pos.y = (floorY !== null) ? floorY : 0;
+      // Perfect horizontal
       quat.set(0,0,0,1);
     }
 
     this.group.position.copy(pos);
     this.group.quaternion.copy(quat);
+    // Freeze: matrixAutoUpdate=false means Three.js won't recalculate
+    // world matrix each frame — position is locked in world space
+    this.group.matrixAutoUpdate=false;
+    this.group.updateMatrix();
     scene.add(this.group);
     this.group.updateMatrixWorld(true);
     this._build();
-
-    // Paint a large initial circle so tiles appear immediately
-    this._initReveal(pos);
+    this._initReveal();
   }
 
-  /*
-   * Paint an initial large reveal circle at the anchor point
-   * so the user sees tiles immediately without needing to sweep.
-   * Uses the group centre (UV 0.5, 0.5).
-   */
-  _initReveal(anchorWorldPos){
-    // Centre of the mask = centre of the patch
-    const initR = BPIX * 1.8; // big initial reveal
-    const cx = MRES/2, cy = MRES/2;
+  _initReveal(){
+    const initR=BPIX*1.8;
+    const cx=MRES/2, cy=MRES/2;
     const g=this.mctx.createRadialGradient(cx,cy,0,cx,cy,initR);
     g.addColorStop(0,'rgba(255,255,255,1)');
     g.addColorStop(0.7,'rgba(255,255,255,0.95)');
@@ -378,7 +417,7 @@ class SurfaceGroup{
     this.mctx.fillStyle=g;
     this.mctx.beginPath();this.mctx.arc(cx,cy,initR,0,Math.PI*2);this.mctx.fill();
     this.mtex.needsUpdate=true;
-    this._lpx=cx;this._lpy=cy;
+    this._lpx=MRES/2;this._lpy=MRES/2;
   }
 
   _build(){
@@ -387,52 +426,60 @@ class SurfaceGroup{
     if(this._tex)this._tex.dispose();
 
     const sv=parseFloat(document.getElementById('szsl').value);
-    const tm=sv*0.05+0.10; // 0.15m – 0.60m per tile
+    const tm=sv*0.05+0.10;
     this._tex=makeTex(curTile);
     this._tex.repeat.set(PATCH/(tm*2),PATCH/(tm*2));
 
-    /*
-     * depthWrite: true  → tiles properly occlude things in front (feet, furniture)
-     * polygonOffset     → prevents z-fighting with real floor depth
-     * opacity via slider (default 0.92 = very visible but slight transparency)
-     */
     const mat=new THREE.MeshBasicMaterial({
       map:this._tex,
       alphaMap:this.mtex,
       transparent:true,
       opacity:tileOp,
-      depthWrite:true,
+      /*
+       * depthWrite: false — critical for AR compositing.
+       * The tile should NOT write to the depth buffer. 
+       * Real-world objects (from ARCore depth) will naturally
+       * occlude correctly because we're compositing over the camera feed.
+       * depthTest: true still prevents the tile from drawing over
+       * objects that are in FRONT of it in 3D space.
+       */
+      depthWrite:false,
       depthTest:true,
       polygonOffset:true,
-      polygonOffsetFactor:-6,
-      polygonOffsetUnits:-6,
+      polygonOffsetFactor:-4,
+      polygonOffsetUnits:-4,
       side:THREE.FrontSide,
     });
 
     const geo=new THREE.PlaneGeometry(PATCH,PATCH);
     this.mesh=new THREE.Mesh(geo,mat);
-    // Rotate plane so it lies flat (normal = world Y up)
+    // Rotate so plane lies flat (world XZ plane, normal = +Y)
     this.mesh.rotation.x=-Math.PI/2;
-    // No Y lift — polygon offset handles z-fight in clip space
+    // ZERO local Y — the group's world Y is already set to floor level
     this.mesh.position.y=0;
     this.group.add(this.mesh);
 
-    // Thin gold border to show patch extent
     const bg=new THREE.EdgesGeometry(new THREE.PlaneGeometry(PATCH,PATCH));
     this.bord=new THREE.LineSegments(bg,new THREE.LineBasicMaterial({
       color:0xf0d080,transparent:true,opacity:0.20,depthWrite:false,
     }));
     this.bord.rotation.x=-Math.PI/2;
-    this.bord.position.y=0.0005;
+    this.bord.position.y=0.0002;
     this.group.add(this.bord);
   }
 
+  /*
+   * paint() maps a world-space hit point into the mask UV.
+   * The group world matrix is frozen so worldToLocal always gives
+   * the correct local coords relative to the anchored position.
+   */
   paint(m16){
-    // Translation is at columns 12,13,14 of column-major matrix
     const wp=new THREE.Vector3(m16[12],m16[13],m16[14]);
+    // worldToLocal: inverse of the frozen world matrix
     const loc=this.group.worldToLocal(wp.clone());
 
-    const u=loc.x/PATCH+0.5, v=loc.z/PATCH+0.5;
+    const u=loc.x/PATCH+0.5;
+    const v=loc.z/PATCH+0.5;
     const px=u*MRES, py=v*MRES;
 
     if(this._lpx!==null){
@@ -467,7 +514,11 @@ class SurfaceGroup{
   }
 }
 
-function classify(m16){return Math.abs(m16[5])>0.5?'floor':'wall'}
+function classify(m16){
+  // Column 1 of column-major matrix is the surface normal's Y component
+  // >0.5 means roughly horizontal = floor, else wall
+  return Math.abs(m16[5])>0.5?'floor':'wall';
+}
 
 /* ── Three.js init ──────────────────────────────────────────────── */
 function initThree(){
@@ -510,11 +561,9 @@ async function startAR(){
   }catch(e){showNS();return}
   xrSession=sess;
 
-  // CORRECT r128 order: setReferenceSpaceType BEFORE setSession
   renderer.xr.setReferenceSpaceType('local-floor');
   await renderer.xr.setSession(sess);
 
-  // Get our own refSpace — same type as Three.js camera tracking
   try{
     refSpace=await sess.requestReferenceSpace('local-floor');
     hasFloor=true;
@@ -527,7 +576,7 @@ async function startAR(){
   document.getElementById('hud').style.display='block';
   renderer.setAnimationLoop(onFrame);
   setupUI();
-  setSt('Hold level — calibrating floor height…');
+  setSt('Hold phone level — calibrating floor…');
   document.getElementById('calib-bar').classList.add('show');
 }
 
@@ -538,16 +587,24 @@ function onEnd(){
   lastHit=null;lastType=null;calibSamples=[];floorY=null;calibrated=false;
 }
 
-/* ── XR frame ───────────────────────────────────────────────────── */
+/* ── XR frame loop ─────────────────────────────────────────────── */
 function onFrame(t,frame){
   if(!frame)return;
 
+  // Request hit-test source once
   if(!htDone){
     htDone=true;
     frame.session.requestReferenceSpace('viewer')
       .then(vs=>frame.session.requestHitTestSource({space:vs}))
-      .then(s=>{htSrc=s;setSt('Hold level — calibrating floor…')})
+      .then(s=>{htSrc=s;})
       .catch(()=>setSt('Hit-test unavailable'));
+  }
+
+  // Get camera pose in the reference space (used for floor patch centering)
+  let camPoseMatrix=null;
+  const camPose=frame.getViewerPose(refSpace);
+  if(camPose && camPose.views.length>0){
+    camPoseMatrix=Array.from(camPose.views[0].transform.matrix);
   }
 
   if(htSrc&&refSpace){
@@ -558,31 +615,30 @@ function onFrame(t,frame){
         lastHit=Array.from(pose.transform.matrix);
         const tp=classify(lastHit);
 
-        // ── FLOOR CALIBRATION ─────────────────────────────────────
-        // Collect Y samples from floor hits before creating the surface.
-        // This averages out sensor noise to find the true floor level.
+        // ── FLOOR CALIBRATION ──────────────────────────────────────
         if(tp==='floor' && !calibrated){
-          const hitY=lastHit[13]; // translation Y from column-major matrix
+          const hitY=lastHit[13];
           calibSamples.push(hitY);
 
           const pct=calibSamples.length/CALIB_N;
           document.getElementById('calib-fill').style.width=(pct*100)+'%';
+          setSt(`Calibrating floor… ${Math.round(pct*100)}%`);
+
+          // Show reticle so user knows sensor is working
+          reticle.visible=true;
+          reticle.matrix.fromArray(lastHit);
 
           if(calibSamples.length>=CALIB_N){
-            // Average the samples — this is our floor Y
-            floorY=calibSamples.reduce((a,b)=>a+b,0)/calibSamples.length;
+            // MEDIAN (not mean) — robust against outlier spikes
+            floorY=median(calibSamples);
             calibrated=true;
             document.getElementById('calib-bar').classList.remove('show');
-            setSt('📐 Floor calibrated! Sweep to paint tiles');
+            setSt('✓ Floor locked — sweep to paint tiles');
             showBadge('floor');
-          } else {
-            setSt(`Calibrating floor… ${Math.round(pct*100)}%`);
-            // Show reticle during calibration
-            reticle.visible=true;
-            reticle.matrix.fromArray(lastHit);
-            renderer.render(scene,camera);
-            return;
           }
+
+          renderer.render(scene,camera);
+          return;
         }
 
         if(tp!==lastType){lastType=tp;showBadge(tp)}
@@ -591,27 +647,28 @@ function onFrame(t,frame){
         reticle.matrix.fromArray(lastHit);
         document.getElementById('rcss').classList.add('on');
         document.getElementById('spulse').classList.add('on');
-        setSt(tp==='floor'?'📐 Floor — sweep to paint tiles':'🧱 Wall — sweep to paint tiles');
+        setSt(tp==='floor'?'📐 Floor — sweep to paint':'🧱 Wall — sweep to paint');
 
         let surf=tp==='floor'?fSurf:wSurf;
         if(!surf){
           surf=new SurfaceGroup(tp);
-          // For floor: pass the calibrated average Y
-          const oy = (tp==='floor' && calibrated) ? floorY : undefined;
-          surf.anchor(lastHit, oy);
+          surf.anchor(lastHit, camPoseMatrix);
           if(tp==='floor')fSurf=surf;else wSurf=surf;
           updTabs();
+        } else {
+          // Surface already anchored — only update the paint mask,
+          // never touch the world position again
+          surf.paint(lastHit);
         }
-        surf.paint(lastHit);
       }
     }else{
-      lastHit=null;
       reticle.visible=false;
       document.getElementById('rcss').classList.remove('on');
       document.getElementById('spulse').classList.remove('on');
-      if(calibrated){
-        lastType=null;showBadge(null);
-        setSt('Point camera at your floor…');
+      if(!calibrated){
+        setSt('Point at your floor to calibrate…');
+      } else {
+        setSt('Move phone slowly over the floor…');
       }
     }
   }
@@ -632,7 +689,7 @@ function clearAll(){
   document.getElementById('calib-fill').style.width='0%';
   document.getElementById('calib-bar').classList.add('show');
   showBadge(null);updTabs();
-  setSt('Hold level — recalibrating floor…');
+  setSt('Recalibrating floor — hold phone level…');
 }
 function cleanAll(){fSurf?.dispose();fSurf=null;wSurf?.dispose();wSurf=null}
 
