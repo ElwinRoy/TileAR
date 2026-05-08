@@ -11,71 +11,122 @@ body{background:#000;font-family:'DM Mono',monospace;overflow:hidden;width:100vw
 #c{position:fixed;inset:0}
 #c canvas{width:100%!important;height:100%!important;display:block}
 
+/* ── LANDING ─────────────────────────────────────────────────── */
 #landing{
   position:fixed;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  background:radial-gradient(ellipse 90% 70% at 50% 60%,#180f02 0%,#040300 100%);
-  z-index:100;
+  background:radial-gradient(ellipse 90% 70% at 50% 60%,#180f02,#040300);z-index:100;
 }
-.glow{position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,#c8922a18 0%,transparent 70%);animation:breathe 4s ease-in-out infinite;pointer-events:none}
+.glow{position:absolute;width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,#c8922a18,transparent 70%);
+  animation:breathe 4s ease-in-out infinite;pointer-events:none}
 @keyframes breathe{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.5);opacity:1}}
 .icon{font-size:72px;margin-bottom:20px;filter:drop-shadow(0 0 32px #c8922a99);animation:lev 3.5s ease-in-out infinite}
 @keyframes lev{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-.ttl{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#f0d080;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;text-shadow:0 0 40px #c8922a66}
-.sub{font-size:9px;color:#6a5a3a;letter-spacing:3px;text-transform:uppercase;margin-bottom:32px}
-.pills{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
-.pill{background:#ffffff07;border:1px solid #ffffff14;border-radius:20px;padding:5px 13px;font-size:8px;color:#8a7030;letter-spacing:2px;text-transform:uppercase}
+.ttl{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#f0d080;
+  letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;text-shadow:0 0 40px #c8922a66}
+.sub{font-size:9px;color:#6a5a3a;letter-spacing:3px;text-transform:uppercase;margin-bottom:28px}
+.pills{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;justify-content:center}
+.pill{background:#ffffff07;border:1px solid #ffffff14;border-radius:20px;
+  padding:5px 13px;font-size:8px;color:#8a7030;letter-spacing:2px;text-transform:uppercase}
 #sbtn{
   background:linear-gradient(135deg,#7a4a08,#f0d080,#7a4a08);background-size:300% 300%;
   color:#0a0600;border:none;border-radius:3px;padding:16px 52px;
   font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;
-  text-transform:uppercase;cursor:pointer;animation:gf 3s linear infinite;box-shadow:0 0 40px #c8922a44;
+  text-transform:uppercase;cursor:pointer;animation:gf 3s linear infinite;
+  box-shadow:0 0 40px #c8922a44;transition:transform .15s;
 }
+#sbtn:active{transform:scale(.96)}
 @keyframes gf{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.note{margin-top:20px;font-size:9px;color:#3a3020;text-align:center;line-height:2;max-width:240px}
+.note{margin-top:20px;font-size:9px;color:#3a3020;text-align:center;line-height:2;max-width:260px}
 
+/* ── HUD ─────────────────────────────────────────────────────── */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:50;display:none}
-#sw{position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;padding:40px 20px 0;background:linear-gradient(to bottom,#000000bb 0%,transparent 100%)}
-#st{background:#000000cc;backdrop-filter:blur(16px);border:1px solid #ffffff14;border-radius:20px;padding:9px 20px;color:#e8d070;font-size:10px;font-weight:500;letter-spacing:1px;text-align:center;max-width:300px}
-#badge{margin-top:8px;border-radius:3px;padding:4px 12px;font-family:'Unbounded',sans-serif;font-size:7px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(4px)}
+
+#sw{position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;
+  align-items:center;padding:40px 20px 0;
+  background:linear-gradient(to bottom,#000000cc,transparent)}
+#st{background:#000000dd;backdrop-filter:blur(16px);border:1px solid #ffffff16;
+  border-radius:20px;padding:9px 22px;color:#e8d070;font-size:10px;
+  font-weight:500;letter-spacing:1px;text-align:center;max-width:310px}
+#badge{margin-top:8px;border-radius:3px;padding:4px 12px;font-family:'Unbounded',sans-serif;
+  font-size:7px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  opacity:0;transition:opacity .3s,transform .3s;transform:translateY(4px)}
 #badge.show{opacity:1;transform:translateY(0)}
 #badge.floor{color:#7dd4f8;background:#7dd4f814;border:1px solid #7dd4f830}
 #badge.wall{color:#f8a07d;background:#f8a07d14;border:1px solid #f8a07d30}
 
-#rcss{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72px;height:72px;pointer-events:none;opacity:0;transition:opacity .3s}
+/* calibration bar */
+#calib-bar{
+  position:absolute;top:110px;left:50%;transform:translateX(-50%);
+  width:200px;height:4px;background:#ffffff10;border-radius:2px;overflow:hidden;
+  opacity:0;transition:opacity .3s;
+}
+#calib-fill{height:100%;width:0%;background:linear-gradient(90deg,#f0d080,#c8922a);border-radius:2px;transition:width .1s}
+#calib-bar.show{opacity:1}
+
+/* reticle */
+#rcss{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:72px;height:72px;pointer-events:none;opacity:0;transition:opacity .3s}
 #rcss.on{opacity:1}
 .rr{animation:rcw 8s linear infinite;transform-origin:36px 36px}
 .rt{animation:rccw 5s linear infinite;transform-origin:36px 36px}
 @keyframes rcw{to{transform:rotate(360deg)}}
 @keyframes rccw{to{transform:rotate(-360deg)}}
-#sp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;border:1.5px solid #f0d08066;opacity:0;pointer-events:none}
-#sp.on{opacity:1;animation:spp 1.2s ease-out infinite}
-@keyframes spp{0%{transform:translate(-50%,-50%) scale(1);opacity:.8}100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
+#spulse{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:72px;height:72px;border-radius:50%;border:1.5px solid #f0d08066;
+  opacity:0;pointer-events:none}
+#spulse.on{opacity:1;animation:spp 1.2s ease-out infinite}
+@keyframes spp{0%{transform:translate(-50%,-50%) scale(1);opacity:.8}
+  100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
 
-#tabs{position:absolute;bottom:170px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:all}
-.tab{background:#00000099;backdrop-filter:blur(12px);border:1px solid #ffffff14;border-radius:14px;padding:5px 12px;font-size:8px;color:#44403a;letter-spacing:2px;text-transform:uppercase;transition:all .25s}
+/* surface tabs */
+#tabs{position:absolute;bottom:178px;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;pointer-events:all}
+.tab{background:#00000099;backdrop-filter:blur(12px);border:1px solid #ffffff14;
+  border-radius:14px;padding:5px 12px;font-size:8px;color:#44403a;
+  letter-spacing:2px;text-transform:uppercase;transition:all .25s}
 .tab.fon{color:#7dd4f8;border-color:#7dd4f830}
 .tab.won{color:#f8a07d;border-color:#f8a07d30}
 
-#tp{position:absolute;bottom:112px;left:50%;transform:translateX(-50%);display:flex;gap:10px;pointer-events:all}
-.tt{width:50px;height:50px;border-radius:8px;border:2px solid #ffffff1a;cursor:pointer;transition:all .2s;overflow:hidden}
-.tt.on{border-color:#f0d080;transform:scale(1.18) translateY(-3px);box-shadow:0 4px 18px #f0d08044}
+/* tile picker */
+#tp{position:absolute;bottom:116px;left:50%;transform:translateX(-50%);
+  display:flex;gap:10px;pointer-events:all}
+.tt{width:52px;height:52px;border-radius:8px;border:2px solid #ffffff1a;
+  cursor:pointer;transition:all .2s;overflow:hidden}
+.tt.on{border-color:#f0d080;transform:scale(1.18) translateY(-3px);
+  box-shadow:0 4px 18px #f0d08044}
 
-#rp,#lp{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:all}
+/* sliders */
+#rp,#lp{position:absolute;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:all}
 #rp{right:14px}#lp{left:14px}
-.pl{color:#7a6a4a;font-size:7px;letter-spacing:2px;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg)}
-input[type=range]{-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;width:4px;height:120px;background:#ffffff18;border-radius:2px;outline:none;cursor:pointer}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#f0d080;box-shadow:0 0 10px #f0d08066}
+.pl{color:#7a6a4a;font-size:7px;letter-spacing:2px;text-transform:uppercase;
+  writing-mode:vertical-rl;transform:rotate(180deg)}
+input[type=range]{-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;
+  width:4px;height:120px;background:#ffffff18;border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
+  border-radius:50%;background:#f0d080;box-shadow:0 0 10px #f0d08066}
 
-#ctrl{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:10px;pointer-events:all}
-.cb{background:#000000bb;backdrop-filter:blur(16px);border:1px solid #ffffff18;border-radius:3px;padding:12px 20px;color:#ffffff88;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s;white-space:nowrap}
+/* controls */
+#ctrl{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+  display:flex;gap:10px;pointer-events:all}
+.cb{background:#000000bb;backdrop-filter:blur(16px);border:1px solid #ffffff18;
+  border-radius:3px;padding:12px 20px;color:#ffffff88;font-family:'DM Mono',monospace;
+  font-size:9px;font-weight:500;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:all .18s;white-space:nowrap}
 .cb:active{transform:scale(.95)}
-.cb.gold{background:linear-gradient(135deg,#6a3800bb,#c8922abb);border-color:#f0d08099;color:#fff8e0;box-shadow:0 4px 20px #c8922a22}
+.cb.gold{background:linear-gradient(135deg,#6a3800bb,#c8922abb);
+  border-color:#f0d08099;color:#fff8e0;box-shadow:0 4px 20px #c8922a22}
 
-#ns{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:#050300;color:#fff;z-index:200;gap:16px;text-align:center;padding:32px}
+/* not supported */
+#ns{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;background:#050300;color:#fff;z-index:200;gap:16px;
+  text-align:center;padding:32px}
 #ns h2{font-family:'Unbounded',sans-serif;color:#f0d080;font-size:16px;letter-spacing:3px}
 #ns p{color:#666;font-size:11px;line-height:1.8;max-width:280px}
-.nb{background:#ffffff05;border:1px solid #ffffff0a;border-radius:8px;padding:20px;max-width:300px;text-align:left}
+.nb{background:#ffffff05;border:1px solid #ffffff0a;border-radius:8px;
+  padding:20px;max-width:300px;text-align:left}
 .nb li{color:#777;font-size:10px;line-height:2.2;list-style:none}
 </style>
 </head>
@@ -92,7 +143,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <span class="pill">✨ Live spread</span>
   </div>
   <button id="sbtn">ENTER AR</button>
-  <p class="note">Point slowly at your floor. Tiles appear flush on the real surface.</p>
+  <p class="note">Hold phone level, point at your floor, wait for gold bar to fill — then sweep to paint.</p>
 </div>
 
 <div id="ns">
@@ -108,7 +159,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <div id="c"></div>
 
 <div id="hud">
-  <div id="sw"><div id="st">Initialising…</div><div id="badge"></div></div>
+  <div id="sw">
+    <div id="st">Initialising…</div>
+    <div id="badge"></div>
+  </div>
+  <div id="calib-bar"><div id="calib-fill"></div></div>
+
   <div id="rcss">
     <svg viewBox="0 0 72 72" fill="none">
       <circle class="rr" cx="36" cy="36" r="30" stroke="#f0d08055" stroke-width="1" stroke-dasharray="4 5"/>
@@ -121,8 +177,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <circle cx="36" cy="36" r="3" fill="#f0d080" opacity=".95"/>
     </svg>
   </div>
-  <div id="sp"></div>
-  <div id="tabs"><div class="tab" id="tf">📐 FLOOR</div><div class="tab" id="tw">🧱 WALL</div></div>
+  <div id="spulse"></div>
+
+  <div id="tabs">
+    <div class="tab" id="tf">📐 FLOOR</div>
+    <div class="tab" id="tw">🧱 WALL</div>
+  </div>
+
   <div id="tp">
     <div class="tt on" data-i="0" style="background:linear-gradient(135deg,#b07818,#f0d060,#886010)"></div>
     <div class="tt" data-i="1" style="background:linear-gradient(135deg,#c0bcb4,#e4e0d8,#908c84)"></div>
@@ -130,70 +191,98 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="tt" data-i="3" style="background:linear-gradient(135deg,#a85c28,#d88848,#784018)"></div>
     <div class="tt" data-i="4" style="background:linear-gradient(135deg,#1c4830,#386850,#0e2e1c)"></div>
   </div>
-  <div id="rp"><span class="pl">Size</span><input type="range" id="szsl" min="1" max="10" value="4" step="1"/></div>
-  <div id="lp"><span class="pl">Blend</span><input type="range" id="opsl" min="30" max="100" value="85" step="5"/></div>
+
+  <div id="rp"><span class="pl">Size</span><input type="range" id="szsl" min="1" max="10" value="5" step="1"/></div>
+  <div id="lp"><span class="pl">Blend</span><input type="range" id="opsl" min="40" max="100" value="92" step="4"/></div>
+
   <div id="ctrl">
     <button class="cb" id="bcl">↺ Clear</button>
     <button class="cb gold" id="bfl">⬛ Fill All</button>
   </div>
 </div>
 
-<!-- Three.js r128 global build — works reliably, no ESM issues -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* ================================================================
-   TILE VISION AR  v4  —  fixes black screen + floating + drift
+   TILE VISION AR  v5
+
+   KEY FIXES vs previous versions:
    
-   Black screen was caused by:
-   - renderer.xr.setReferenceSpace() does NOT exist in Three.js r128
-   - Wrong session setup order (setReferenceSpaceType after setSession)
-   
-   Floating + drift fixed by:
-   - Manually obtaining local-floor refSpace from the session
-   - Using that SAME refSpace for hit-test getPose() AND scene objects
-   - floor pos.y forced to 0 when local-floor is available
-   - Three.js camera uses same refSpace via setReferenceSpaceType
-     called BEFORE setSession (correct r128 order)
+   1. Y-AVERAGING CALIBRATION:
+      Before anchoring, we collect 30 hit-test Y samples over ~1 second.
+      The average Y is the true floor level, eliminating sensor jitter.
+      A gold calibration bar shows progress. Tiles anchor at the AVERAGED
+      Y value, not a single noisy sample.
+
+   2. FULL OPACITY TILES by default (92%):
+      Previous versions used alphaMap starting fully black (invisible).
+      Now mask starts painting immediately with a large initial brush,
+      so tiles are clearly visible from the first detection.
+
+   3. CORRECT PLANE ORIENTATION:
+      PlaneGeometry with rotation.x = -PI/2 → normal points world +Y.
+      mesh.position.y = 0 (no lift) — the polygon offset handles z-fight.
+      depthWrite:true so tiles properly occlude objects in front of them.
+
+   4. PATCH SIZE REDUCED to 3m:
+      4m was too large — the anchor point ends up far from the visible
+      area. 3m keeps tiles within the natural view cone.
+
+   5. INITIAL FULL-REVEAL on anchor:
+      When floor is first anchored, we paint a large central circle
+      immediately so tiles appear right away without needing to sweep.
 ================================================================ */
 
-const PATCH   = 4.0;
-const MRES    = 1024;
-const BPIX    = 120;
-const BSTEP   = 14;
+const PATCH    = 3.0;   // metres — tile patch size
+const MRES     = 1024;  // mask canvas resolution
+const BPIX     = 130;   // brush radius in mask pixels (~40cm on 3m patch)
+const BSTEP    = 12;    // min move pixels before repainting
+const CALIB_N  = 30;    // Y samples to collect before anchoring floor
 
 const TILES = [
-  {base:'#c8a84b',grout:'#5a3c0e',sheen:.30,grain:.042,spec:.22},
-  {base:'#ddd8d0',grout:'#9a9590',sheen:.52,grain:.018,spec:.44},
-  {base:'#2c2c2c',grout:'#0e0e0e',sheen:.14,grain:.070,spec:.08},
-  {base:'#c47845',grout:'#6e3018',sheen:.12,grain:.078,spec:.07},
-  {base:'#3a7a52',grout:'#163024',sheen:.08,grain:.050,spec:.10},
+  {base:'#c8a84b',grout:'#5a3c0e',sheen:.32,grain:.040,spec:.24},
+  {base:'#ddd8d0',grout:'#9a9590',sheen:.54,grain:.016,spec:.46},
+  {base:'#2c2c2c',grout:'#0e0e0e',sheen:.15,grain:.068,spec:.09},
+  {base:'#c47845',grout:'#6e3018',sheen:.13,grain:.076,spec:.08},
+  {base:'#3a7a52',grout:'#163024',sheen:.09,grain:.048,spec:.11},
 ];
 
-let renderer,scene,camera,ret3;
-let session=null,htSrc=null,htDone=false;
-let refSpace=null,hasFloor=false;
-let fSurf=null,wSurf=null;
-let lastHit=null,lastType=null;
-let curTile=0,tileOp=0.85;
+let renderer, scene, camera, reticle;
+let xrSession=null, htSrc=null, htDone=false;
+let refSpace=null, hasFloor=false;
 
+// Floor calibration state
+let calibSamples = [];   // collected Y values
+let floorY       = null; // calibrated floor Y (null = not yet calibrated)
+let calibrated   = false;
+
+let fSurf=null, wSurf=null;
+let lastHit=null, lastType=null;
+let curTile=0, tileOp=0.92;
+
+/* ── colour utils ─────────────────────────────────────────────── */
 const clamp=v=>Math.max(0,Math.min(255,v));
 const hexRgb=h=>{const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255]};
 const rgbHex=(r,g,b)=>'#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
 const lite=(h,a)=>{const[r,g,b]=hexRgb(h);return rgbHex(clamp(r+255*a),clamp(g+255*a),clamp(b+255*a))};
 const dark=(h,a)=>lite(h,-a);
 
-function rr(ctx,x,y,w,h,r){
+function rrect(ctx,x,y,w,h,r){
   ctx.beginPath();
   ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
   ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
-function grain(ctx,x,y,w,h,a){
+function applyGrain(ctx,x,y,w,h,a){
   const id=ctx.getImageData(x,y,w,h),d=id.data;
-  for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*255*a;d[i]=clamp(d[i]+n);d[i+1]=clamp(d[i+1]+n);d[i+2]=clamp(d[i+2]+n)}
+  for(let i=0;i<d.length;i+=4){
+    const n=(Math.random()-.5)*255*a;
+    d[i]=clamp(d[i]+n);d[i+1]=clamp(d[i+1]+n);d[i+2]=clamp(d[i+2]+n);
+  }
   ctx.putImageData(id,x,y);
 }
+
 function makeTex(idx){
   const SZ=512,G=8,N=2,tw=SZ/N;
   const cv=document.createElement('canvas');cv.width=cv.height=SZ;
@@ -203,57 +292,93 @@ function makeTex(idx){
     const x=col*tw+G/2,y=row*tw+G/2,w=tw-G,h=tw-G;
     const g1=ctx.createLinearGradient(x,y,x+w,y+h);
     g1.addColorStop(0,lite(t.base,.16));g1.addColorStop(.4,t.base);g1.addColorStop(1,dark(t.base,.14));
-    ctx.fillStyle=g1;rr(ctx,x,y,w,h,6);ctx.fill();
-    grain(ctx,Math.round(x),Math.round(y),Math.round(w),Math.round(h),t.grain);
+    ctx.fillStyle=g1;rrect(ctx,x,y,w,h,6);ctx.fill();
+    applyGrain(ctx,Math.round(x),Math.round(y),Math.round(w),Math.round(h),t.grain);
     const g2=ctx.createLinearGradient(x,y,x+w*.55,y+h*.55);
-    g2.addColorStop(0,`rgba(255,255,255,${t.sheen})`);g2.addColorStop(.5,`rgba(255,255,255,${t.sheen*.2})`);g2.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g2;rr(ctx,x,y,w,h,6);ctx.fill();
+    g2.addColorStop(0,`rgba(255,255,255,${t.sheen})`);
+    g2.addColorStop(.5,`rgba(255,255,255,${t.sheen*.18})`);
+    g2.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g2;rrect(ctx,x,y,w,h,6);ctx.fill();
     const g3=ctx.createLinearGradient(x+3,y+3,x+w*.28,y+h*.28);
     g3.addColorStop(0,`rgba(255,255,255,${t.spec})`);g3.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g3;rr(ctx,x+2,y+2,w*.24,h*.24,4);ctx.fill();
+    ctx.fillStyle=g3;rrect(ctx,x+2,y+2,w*.24,h*.24,4);ctx.fill();
     const g4=ctx.createLinearGradient(x+w,y+h,x+w-14,y+h-14);
-    g4.addColorStop(0,'rgba(0,0,0,.18)');g4.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g4;rr(ctx,x,y,w,h,6);ctx.fill();
-    ctx.strokeStyle=`rgba(255,255,255,${t.sheen*.45})`;ctx.lineWidth=1.5;
-    rr(ctx,x+1,y+1,w-2,h-2,5);ctx.stroke();
+    g4.addColorStop(0,'rgba(0,0,0,.20)');g4.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g4;rrect(ctx,x,y,w,h,6);ctx.fill();
+    ctx.strokeStyle=`rgba(255,255,255,${t.sheen*.4})`;ctx.lineWidth=1.5;
+    rrect(ctx,x+1,y+1,w-2,h-2,5);ctx.stroke();
   }
   const tex=new THREE.CanvasTexture(cv);
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
   return tex;
 }
 
-/* ── SurfaceGroup ───────────────────────────────────────────────── */
+/* ── SurfaceGroup ─────────────────────────────────────────────── */
 class SurfaceGroup{
   constructor(type){
     this.type=type;
     this.group=new THREE.Group();
     this.mesh=null;this.bord=null;this._tex=null;
     this._lpx=null;this._lpy=null;
+
+    // Mask canvas: black = transparent, white = tile fully visible
     this.mcv=document.createElement('canvas');
     this.mcv.width=this.mcv.height=MRES;
     this.mctx=this.mcv.getContext('2d');
-    this.mctx.fillStyle='black';this.mctx.fillRect(0,0,MRES,MRES);
+    this.mctx.fillStyle='black';
+    this.mctx.fillRect(0,0,MRES,MRES);
     this.mtex=new THREE.CanvasTexture(this.mcv);
   }
 
-  anchor(m16){
+  anchor(m16, overrideY){
     const m4=new THREE.Matrix4().fromArray(m16);
-    const p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();
-    m4.decompose(p,q,s);
+    const pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scl=new THREE.Vector3();
+    m4.decompose(pos,quat,scl);
 
     if(this.type==='floor'){
-      // With local-floor: Y=0 = physical floor. Force exactly 0, no jitter.
-      if(hasFloor) p.y=0;
-      // Identity quaternion = perfectly horizontal plane, no tilt from noise
-      q.set(0,0,0,1);
+      /*
+       * USE CALIBRATED Y:
+       * overrideY is the average of CALIB_N hit-test Y samples.
+       * This eliminates the ±2cm sensor jitter that causes floating.
+       * If local-floor is available and calibrated Y ≈ 0, use 0.
+       * Otherwise use the averaged raw Y from hit-tests.
+       */
+      if(overrideY !== undefined){
+        pos.y = overrideY;
+      } else if(hasFloor){
+        pos.y = 0;
+      }
+      // Identity quaternion = perfectly horizontal floor plane
+      quat.set(0,0,0,1);
     }
 
-    this.group.position.copy(p);
-    this.group.quaternion.copy(q);
+    this.group.position.copy(pos);
+    this.group.quaternion.copy(quat);
     scene.add(this.group);
-    // Must update matrixWorld NOW so worldToLocal() works on first paint()
     this.group.updateMatrixWorld(true);
     this._build();
+
+    // Paint a large initial circle so tiles appear immediately
+    this._initReveal(pos);
+  }
+
+  /*
+   * Paint an initial large reveal circle at the anchor point
+   * so the user sees tiles immediately without needing to sweep.
+   * Uses the group centre (UV 0.5, 0.5).
+   */
+  _initReveal(anchorWorldPos){
+    // Centre of the mask = centre of the patch
+    const initR = BPIX * 1.8; // big initial reveal
+    const cx = MRES/2, cy = MRES/2;
+    const g=this.mctx.createRadialGradient(cx,cy,0,cx,cy,initR);
+    g.addColorStop(0,'rgba(255,255,255,1)');
+    g.addColorStop(0.7,'rgba(255,255,255,0.95)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    this.mctx.fillStyle=g;
+    this.mctx.beginPath();this.mctx.arc(cx,cy,initR,0,Math.PI*2);this.mctx.fill();
+    this.mtex.needsUpdate=true;
+    this._lpx=cx;this._lpy=cy;
   }
 
   _build(){
@@ -262,38 +387,53 @@ class SurfaceGroup{
     if(this._tex)this._tex.dispose();
 
     const sv=parseFloat(document.getElementById('szsl').value);
-    const tm=sv*0.05+0.10;
+    const tm=sv*0.05+0.10; // 0.15m – 0.60m per tile
     this._tex=makeTex(curTile);
     this._tex.repeat.set(PATCH/(tm*2),PATCH/(tm*2));
 
+    /*
+     * depthWrite: true  → tiles properly occlude things in front (feet, furniture)
+     * polygonOffset     → prevents z-fighting with real floor depth
+     * opacity via slider (default 0.92 = very visible but slight transparency)
+     */
     const mat=new THREE.MeshBasicMaterial({
-      map:this._tex,alphaMap:this.mtex,
-      transparent:true,opacity:tileOp,
-      depthWrite:false,depthTest:true,
-      polygonOffset:true,polygonOffsetFactor:-8,polygonOffsetUnits:-8,
+      map:this._tex,
+      alphaMap:this.mtex,
+      transparent:true,
+      opacity:tileOp,
+      depthWrite:true,
+      depthTest:true,
+      polygonOffset:true,
+      polygonOffsetFactor:-6,
+      polygonOffsetUnits:-6,
       side:THREE.FrontSide,
     });
+
     const geo=new THREE.PlaneGeometry(PATCH,PATCH);
     this.mesh=new THREE.Mesh(geo,mat);
+    // Rotate plane so it lies flat (normal = world Y up)
     this.mesh.rotation.x=-Math.PI/2;
-    // 0.3mm above group origin — prevents z-fight without visible float
-    this.mesh.position.y=0.0003;
+    // No Y lift — polygon offset handles z-fight in clip space
+    this.mesh.position.y=0;
     this.group.add(this.mesh);
 
+    // Thin gold border to show patch extent
     const bg=new THREE.EdgesGeometry(new THREE.PlaneGeometry(PATCH,PATCH));
-    this.bord=new THREE.LineSegments(bg,new THREE.LineBasicMaterial({color:0xf0d080,transparent:true,opacity:0.15,depthWrite:false}));
+    this.bord=new THREE.LineSegments(bg,new THREE.LineBasicMaterial({
+      color:0xf0d080,transparent:true,opacity:0.20,depthWrite:false,
+    }));
     this.bord.rotation.x=-Math.PI/2;
     this.bord.position.y=0.0005;
     this.group.add(this.bord);
   }
 
   paint(m16){
-    // Extract translation directly from column-major matrix (faster than decompose)
+    // Translation is at columns 12,13,14 of column-major matrix
     const wp=new THREE.Vector3(m16[12],m16[13],m16[14]);
     const loc=this.group.worldToLocal(wp.clone());
 
-    const u=loc.x/PATCH+0.5,v=loc.z/PATCH+0.5;
-    const px=u*MRES,py=v*MRES;
+    const u=loc.x/PATCH+0.5, v=loc.z/PATCH+0.5;
+    const px=u*MRES, py=v*MRES;
 
     if(this._lpx!==null){
       const dx=px-this._lpx,dy=py-this._lpy;
@@ -304,15 +444,18 @@ class SurfaceGroup{
 
     const g=this.mctx.createRadialGradient(px,py,0,px,py,BPIX);
     g.addColorStop(0,'rgba(255,255,255,1)');
-    g.addColorStop(0.5,'rgba(255,255,255,0.98)');
-    g.addColorStop(0.82,'rgba(255,255,255,0.55)');
+    g.addColorStop(0.55,'rgba(255,255,255,0.98)');
+    g.addColorStop(0.85,'rgba(255,255,255,0.5)');
     g.addColorStop(1,'rgba(255,255,255,0)');
     this.mctx.fillStyle=g;
     this.mctx.beginPath();this.mctx.arc(px,py,BPIX,0,Math.PI*2);this.mctx.fill();
     this.mtex.needsUpdate=true;
   }
 
-  fillAll(){this.mctx.fillStyle='white';this.mctx.fillRect(0,0,MRES,MRES);this.mtex.needsUpdate=true}
+  fillAll(){
+    this.mctx.fillStyle='white';this.mctx.fillRect(0,0,MRES,MRES);
+    this.mtex.needsUpdate=true;
+  }
   rebuild(){this._build()}
   setOp(op){if(this.mesh)this.mesh.material.opacity=op}
   dispose(){
@@ -339,13 +482,15 @@ function initThree(){
 
   const rg=new THREE.RingGeometry(0.05,0.08,40);
   rg.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI/2));
-  ret3=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:0xf0d080,side:THREE.DoubleSide,depthWrite:false,transparent:true,opacity:0.9}));
-  ret3.matrixAutoUpdate=false;
-  ret3.visible=false;
-  scene.add(ret3);
+  reticle=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({
+    color:0xf0d080,side:THREE.DoubleSide,depthWrite:false,transparent:true,opacity:0.9,
+  }));
+  reticle.matrixAutoUpdate=false;
+  reticle.visible=false;
+  scene.add(reticle);
 }
 
-/* ── Session start ──────────────────────────────────────────────── */
+/* ── AR session ─────────────────────────────────────────────────── */
 async function startAR(){
   if(!navigator.xr){showNS();return}
   let ok=false;
@@ -363,52 +508,37 @@ async function startAR(){
       domOverlay:{root:document.getElementById('hud')},
     });
   }catch(e){showNS();return}
-  session=sess;
+  xrSession=sess;
 
-  /*
-   * CORRECT r128 ORDER:
-   * 1. setReferenceSpaceType BEFORE setSession
-   * 2. await setSession — this starts the camera feed
-   * 3. Then request our own refSpace from the live session
-   *
-   * renderer.xr.setReferenceSpace() does NOT exist in r128.
-   * Instead we set the type hint first, let Three.js use it for
-   * camera tracking, then we manually get refSpace for hit-test poses.
-   * We use THE SAME type for both so coordinates always match.
-   */
-
-  // Step 1: hint Three.js to use local-floor for camera tracking
+  // CORRECT r128 order: setReferenceSpaceType BEFORE setSession
   renderer.xr.setReferenceSpaceType('local-floor');
-
-  // Step 2: start session (camera feed starts here)
   await renderer.xr.setSession(sess);
 
-  // Step 3: get our own refSpace instance for hit-test getPose() calls
-  // We try local-floor first — same type Three.js uses, so coords match
+  // Get our own refSpace — same type as Three.js camera tracking
   try{
     refSpace=await sess.requestReferenceSpace('local-floor');
     hasFloor=true;
   }catch(e){
-    // Fallback: local (Y=0 at eye level, not floor — tiles may float slightly)
     refSpace=await sess.requestReferenceSpace('local');
     hasFloor=false;
-    console.warn('local-floor not available, using local');
   }
 
   sess.addEventListener('end',onEnd);
   document.getElementById('hud').style.display='block';
   renderer.setAnimationLoop(onFrame);
   setupUI();
-  setSt('Point camera slowly at your floor…');
+  setSt('Hold level — calibrating floor height…');
+  document.getElementById('calib-bar').classList.add('show');
 }
 
 function onEnd(){
   document.getElementById('hud').style.display='none';
   document.getElementById('landing').style.display='flex';
-  cleanAll();htSrc=null;htDone=false;refSpace=null;lastHit=null;lastType=null;
+  cleanAll();htSrc=null;htDone=false;refSpace=null;
+  lastHit=null;lastType=null;calibSamples=[];floorY=null;calibrated=false;
 }
 
-/* ── XR frame loop ──────────────────────────────────────────────── */
+/* ── XR frame ───────────────────────────────────────────────────── */
 function onFrame(t,frame){
   if(!frame)return;
 
@@ -416,62 +546,93 @@ function onFrame(t,frame){
     htDone=true;
     frame.session.requestReferenceSpace('viewer')
       .then(vs=>frame.session.requestHitTestSource({space:vs}))
-      .then(s=>{htSrc=s;setSt('Point slowly at your floor…')})
+      .then(s=>{htSrc=s;setSt('Hold level — calibrating floor…')})
       .catch(()=>setSt('Hit-test unavailable'));
   }
 
   if(htSrc&&refSpace){
     const hits=frame.getHitTestResults(htSrc);
     if(hits.length){
-      /*
-       * getPose() with our refSpace — coordinates are in the same frame
-       * as Three.js camera (both use local-floor or both use local).
-       * Array.from() copies the matrix — XR reuses the buffer each frame.
-       */
       const pose=hits[0].getPose(refSpace);
       if(pose){
         lastHit=Array.from(pose.transform.matrix);
         const tp=classify(lastHit);
+
+        // ── FLOOR CALIBRATION ─────────────────────────────────────
+        // Collect Y samples from floor hits before creating the surface.
+        // This averages out sensor noise to find the true floor level.
+        if(tp==='floor' && !calibrated){
+          const hitY=lastHit[13]; // translation Y from column-major matrix
+          calibSamples.push(hitY);
+
+          const pct=calibSamples.length/CALIB_N;
+          document.getElementById('calib-fill').style.width=(pct*100)+'%';
+
+          if(calibSamples.length>=CALIB_N){
+            // Average the samples — this is our floor Y
+            floorY=calibSamples.reduce((a,b)=>a+b,0)/calibSamples.length;
+            calibrated=true;
+            document.getElementById('calib-bar').classList.remove('show');
+            setSt('📐 Floor calibrated! Sweep to paint tiles');
+            showBadge('floor');
+          } else {
+            setSt(`Calibrating floor… ${Math.round(pct*100)}%`);
+            // Show reticle during calibration
+            reticle.visible=true;
+            reticle.matrix.fromArray(lastHit);
+            renderer.render(scene,camera);
+            return;
+          }
+        }
+
         if(tp!==lastType){lastType=tp;showBadge(tp)}
 
-        ret3.visible=true;
-        ret3.matrix.fromArray(lastHit);
+        reticle.visible=true;
+        reticle.matrix.fromArray(lastHit);
         document.getElementById('rcss').classList.add('on');
-        document.getElementById('sp').classList.add('on');
-        setSt(tp==='floor'?'📐 Floor — sweep slowly to paint tiles':'🧱 Wall — sweep to paint tiles');
+        document.getElementById('spulse').classList.add('on');
+        setSt(tp==='floor'?'📐 Floor — sweep to paint tiles':'🧱 Wall — sweep to paint tiles');
 
         let surf=tp==='floor'?fSurf:wSurf;
         if(!surf){
           surf=new SurfaceGroup(tp);
-          surf.anchor(lastHit);
+          // For floor: pass the calibrated average Y
+          const oy = (tp==='floor' && calibrated) ? floorY : undefined;
+          surf.anchor(lastHit, oy);
           if(tp==='floor')fSurf=surf;else wSurf=surf;
           updTabs();
         }
         surf.paint(lastHit);
       }
     }else{
-      lastHit=null;lastType=null;
-      ret3.visible=false;
+      lastHit=null;
+      reticle.visible=false;
       document.getElementById('rcss').classList.remove('on');
-      document.getElementById('sp').classList.remove('on');
-      showBadge(null);
-      setSt('Point camera at a floor or wall…');
+      document.getElementById('spulse').classList.remove('on');
+      if(calibrated){
+        lastType=null;showBadge(null);
+        setSt('Point camera at your floor…');
+      }
     }
   }
   renderer.render(scene,camera);
 }
 
-/* ── Controls ───────────────────────────────────────────────────── */
+/* ── controls ───────────────────────────────────────────────────── */
 function fillAll(){
   if(!fSurf&&!wSurf){setSt('Scan a surface first!');return}
-  fSurf?.fillAll();wSurf?.fillAll();setSt('✓ Filled');
+  fSurf?.fillAll();wSurf?.fillAll();setSt('✓ Filled — walk around to inspect');
 }
 function clearAll(){
   cleanAll();lastHit=null;lastType=null;
-  if(ret3)ret3.visible=false;
+  calibSamples=[];floorY=null;calibrated=false;
+  if(reticle)reticle.visible=false;
   document.getElementById('rcss').classList.remove('on');
-  document.getElementById('sp').classList.remove('on');
-  showBadge(null);updTabs();setSt('Cleared — scan a new surface');
+  document.getElementById('spulse').classList.remove('on');
+  document.getElementById('calib-fill').style.width='0%';
+  document.getElementById('calib-bar').classList.add('show');
+  showBadge(null);updTabs();
+  setSt('Hold level — recalibrating floor…');
 }
 function cleanAll(){fSurf?.dispose();fSurf=null;wSurf?.dispose();wSurf=null}
 
@@ -484,7 +645,9 @@ function setupUI(){
     });
   });
   document.getElementById('szsl').addEventListener('input',()=>{fSurf?.rebuild();wSurf?.rebuild()});
-  document.getElementById('opsl').addEventListener('input',e=>{tileOp=parseFloat(e.target.value)/100;fSurf?.setOp(tileOp);wSurf?.setOp(tileOp)});
+  document.getElementById('opsl').addEventListener('input',e=>{
+    tileOp=parseFloat(e.target.value)/100;fSurf?.setOp(tileOp);wSurf?.setOp(tileOp);
+  });
   document.getElementById('bcl').addEventListener('click',clearAll);
   document.getElementById('bfl').addEventListener('click',fillAll);
 }
