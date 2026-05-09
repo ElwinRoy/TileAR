@@ -29,6 +29,7 @@
   @keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
   .note { margin-top: 24px; font-size: 11px; color: #555; text-align: center; line-height: 1.6; max-width: 280px; }
 
+  /* ── HUD ─────────────────────────────────────────── */
   #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
 
   #status {
@@ -37,15 +38,49 @@
     border: 1px solid #f0d08033; border-radius: 24px;
     padding: 10px 20px; color: #f0d080; font-size: 13px;
     font-weight: 600; letter-spacing: .5px; text-align: center; white-space: nowrap;
+    transition: opacity .4s;
   }
 
-  #reticle-ring {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: 60px; height: 60px; border: 2px solid #f0d08099; border-radius: 50%;
-    animation: spin-ring 4s linear infinite; transition: opacity .4s;
+  /* Scanning pulse — shown while searching for floor */
+  #scan-ring {
+    position: absolute; top: 50%; left: 50%;
+    width: 72px; height: 72px;
+    border: 2px solid transparent;
+    border-top-color: #f0d080;
+    border-right-color: #f0d08044;
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    animation: spin 1.2s linear infinite;
+    transition: opacity .5s;
   }
-  @keyframes spin-ring { 0%{transform:translate(-50%,-50%) rotate(0deg)} 100%{transform:translate(-50%,-50%) rotate(360deg)} }
+  @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
+  /* Spread ripple — shown while tiles are live-spreading */
+  #spread-pulse {
+    position: absolute; top: 50%; left: 50%;
+    width: 40px; height: 40px;
+    border: 2px solid #f0d080;
+    border-radius: 50%;
+    transform: translate(-50%,-50%) scale(1);
+    opacity: 0;
+    display: none;
+    animation: spread-ripple 1.8s ease-out infinite;
+  }
+  @keyframes spread-ripple {
+    0%   { transform: translate(-50%,-50%) scale(0.6); opacity: 0.8; }
+    100% { transform: translate(-50%,-50%) scale(3.5); opacity: 0; }
+  }
+
+  /* Lock indicator badge */
+  #lock-badge {
+    position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+    background: #1a5c2acc; border: 1px solid #60d08088;
+    border-radius: 20px; padding: 6px 16px;
+    color: #90f0a0; font-size: 12px; font-weight: 600; letter-spacing: 1px;
+    display: none; white-space: nowrap;
+  }
+
+  /* ── Tile picker ──────────────────────────────────── */
   #tile-picker {
     position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 12px; pointer-events: all;
@@ -56,16 +91,12 @@
   }
   .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
 
+  /* ── Sliders ──────────────────────────────────────── */
   #size-control {
     position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
   }
   #size-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
-  input[type=range] {
-    -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
-    width: 6px; height: 140px; background: #ffffff22; border-radius: 3px; outline: none; cursor: pointer;
-  }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
 
   #opacity-control {
     position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
@@ -73,6 +104,13 @@
   }
   #opacity-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
 
+  input[type=range] {
+    -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
+    width: 6px; height: 140px; background: #ffffff22; border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
+
+  /* ── Bottom buttons ───────────────────────────────── */
   #controls {
     position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 16px; pointer-events: all;
@@ -81,16 +119,19 @@
     background: #000000cc; backdrop-filter: blur(12px); border: 1px solid #ffffff22;
     border-radius: 50px; padding: 14px 28px; color: #fff; font-size: 13px;
     font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap;
+    transition: background .2s, border-color .2s, color .2s;
   }
-  .ctrl-btn.primary { background: #c8922acc; border-color: #f0d080aa; color: #fff8e0; }
+  .ctrl-btn.active-live  { background: #c8922acc; border-color: #f0d080aa; color: #fff8e0; }
+  .ctrl-btn.active-lock  { background: #1a7a2acc; border-color: #60d080aa; color: #e0ffec; }
 
+  /* ── Not-supported screen ─────────────────────────── */
   #not-supported {
     position: fixed; inset: 0; display: none; flex-direction: column;
     align-items: center; justify-content: center; background: #0a0a0a;
     color: #fff; z-index: 200; gap: 16px; text-align: center; padding: 32px;
   }
   #not-supported h2 { color: #f0d080; font-size: 22px; }
-  #not-supported p { color: #888; font-size: 14px; line-height: 1.6; max-width: 300px; }
+  #not-supported p  { color: #888; font-size: 14px; line-height: 1.6; max-width: 300px; }
   #not-supported .steps { background: #ffffff08; border-radius: 12px; padding: 20px; max-width: 320px; text-align: left; }
   #not-supported .steps li { color: #aaa; font-size: 13px; line-height: 2; }
 </style>
@@ -100,9 +141,9 @@
 <div id="landing">
   <div class="landing-icon">🪟</div>
   <div class="landing-title">AR Tile Visualizer</div>
-  <div class="landing-sub">See tiles on your real floor</div>
+  <div class="landing-sub">Tiles live-spread on your real floor</div>
   <button id="start-btn" onclick="startAR()">START AR</button>
-  <p class="note">Point camera at floor, move slowly until reticle appears, then tap PLACE.</p>
+  <p class="note">Slowly scan your floor — tiles spread automatically across the surface. Tap LOCK to freeze, RESET to clear.</p>
 </div>
 
 <div id="not-supported">
@@ -118,7 +159,9 @@
 <div id="canvas-container"></div>
 
 <div id="hud">
-  <div id="reticle-ring"></div>
+  <div id="scan-ring"></div>
+  <div id="spread-pulse"></div>
+  <div id="lock-badge">⬤ TILE LOCKED</div>
   <div id="status">Move phone slowly over the floor…</div>
 
   <div id="tile-picker">
@@ -131,7 +174,7 @@
 
   <div id="size-control">
     <span id="size-label">Size</span>
-    <input type="range" id="tile-size-slider" min="1" max="10" value="4" step="1"/>
+    <input type="range" id="tile-size-slider" min="1" max="10" value="6" step="1"/>
   </div>
 
   <div id="opacity-control">
@@ -141,7 +184,7 @@
 
   <div id="controls">
     <button class="ctrl-btn" onclick="resetAR()">↺ Reset</button>
-    <button class="ctrl-btn primary" id="place-btn" onclick="placeTile()">TAP TO PLACE</button>
+    <button class="ctrl-btn active-live" id="lock-btn" onclick="toggleLock()">🔒 Lock</button>
   </div>
 </div>
 
@@ -152,20 +195,34 @@
 <script type="module">
 import * as THREE from 'three';
 
+// ─── State ────────────────────────────────────────────────────────────────
 let renderer, scene, camera;
-let xrSession      = null;
-let hitTestSource  = null;
+let xrSession             = null;
+let hitTestSource         = null;
 let hitTestSourceRequested = false;
 let reticle;
-let floorGroup = null;   // world-anchored container — never moves after placement
-let floorMesh  = null;
-let floorPlaced = false;
+
+let floorGroup   = null;   // Three.Group anchored to the floor
+let floorMesh    = null;   // The textured PlaneGeometry mesh inside the group
+let isLocked     = false;  // When true, tile position is frozen
+let isTracking   = false;  // True once we have our first floor detection
 let currentTileIdx = 0;
 let tileOpacity    = 0.80;
 
-// Raw col-major Float32Array of the hit-test pose — captured every frame
-let latestHitMatrix = null;
+// Smooth position tracking
+const targetPos  = new THREE.Vector3();
+const currentPos = new THREE.Vector3();
+const LERP_POS   = 0.07;   // How fast the tile centre follows the camera's floor projection
+const LERP_SCALE = 0.055;  // How fast the spread-in animation grows
 
+// Stabilised floor Y (exponential moving average — prevents floating)
+let floorY       = null;
+const FLOOR_Y_ALPHA = 0.04; // Lower = more stable but slower to update if floor actually shifts
+
+// Current tile coverage radius in metres (driven by slider)
+let coverM = 3.0;
+
+// ─── Tile definitions ─────────────────────────────────────────────────────
 const TILES = [
   { name:'Gold',       base:'#c8a84b', grout:'#6b4c1e', sheen:0.30 },
   { name:'Marble',     base:'#ddd8d0', grout:'#9a9590', sheen:0.50 },
@@ -174,37 +231,39 @@ const TILES = [
   { name:'Green',      base:'#3d7a52', grout:'#1a3d28', sheen:0.10 },
 ];
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-const cl = v => Math.max(0, Math.min(255, v));
-const hexToRgb = h => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+// ─── Canvas helpers ───────────────────────────────────────────────────────
+const cl      = v => Math.max(0, Math.min(255, v));
+const hexToRgb = h  => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
 const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
-const lighten  = (h,a) => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
-const darken   = (h,a) => lighten(h, -a);
+const lighten  = (h, a)   => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
+const darken   = (h, a)   => lighten(h, -a);
 
 function rRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
   ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
 }
+
 function addGrain(ctx, x, y, w, h, amt) {
   const id = ctx.getImageData(x,y,w,h), d = id.data;
-  for (let i = 0; i < d.length; i+=4) {
+  for (let i = 0; i < d.length; i += 4) {
     const n = (Math.random()-0.5)*255*amt;
     d[i]=cl(d[i]+n); d[i+1]=cl(d[i+1]+n); d[i+2]=cl(d[i+2]+n);
   }
   ctx.putImageData(id, x, y);
 }
 
-// ─── Tile texture ──────────────────────────────────────────────────────────
+// ─── Tile texture builder ─────────────────────────────────────────────────
 function makeTileTexture(idx) {
   const SZ = 512, GROUT = 6, N = 2;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = SZ;
+  const cv  = document.createElement('canvas');
+  cv.width  = cv.height = SZ;
   const ctx = cv.getContext('2d');
-  const t = TILES[idx];
-  const tw = SZ / N;
+  const t   = TILES[idx];
+  const tw  = SZ / N;
 
   for (let row = 0; row < N; row++) {
     for (let col = 0; col < N; col++) {
@@ -234,7 +293,19 @@ function makeTileTexture(idx) {
   return tex;
 }
 
-// ─── Build / rebuild the mesh inside the fixed anchor group ───────────────
+// ─── Build / rebuild the floor mesh ──────────────────────────────────────
+/*
+ *  WHY MeshBasicMaterial:
+ *  It ignores scene lights, so its colour comes straight from the texture.
+ *  The real floor's reflected light is already in the camera feed.
+ *  Combined with opacity the tile feels embedded in the real surface rather
+ *  than pasted on top of it.
+ *
+ *  WHY polygonOffset:
+ *  Without it, tile and floor share the same depth value → z-fighting flicker.
+ *  polygonOffset nudges the tile toward the camera in clip space (no actual Y
+ *  displacement), cleanly resolving the fighting without lifting the tile.
+ */
 function buildFloorMesh(sizeM) {
   if (!floorGroup) return;
 
@@ -246,33 +317,13 @@ function buildFloorMesh(sizeM) {
     floorMesh = null;
   }
 
-  // Tile physical size from slider (0.1 m – 0.6 m per tile)
-  const tileM = parseFloat(document.getElementById('tile-size-slider').value) * 0.05 + 0.1;
-  const tex = makeTileTexture(currentTileIdx);
-  // Texture covers 2×2 tiles; calculate repeat so tiles are the right size
-  const rep = sizeM / (tileM * 2);
+  // Individual tile physical size (0.10 m – 0.60 m based on slider)
+  const tileM = parseFloat(document.getElementById('tile-size-slider').value) * 0.05 + 0.10;
+  const tex   = makeTileTexture(currentTileIdx);
+  // Repeat so each tile appears at the correct real-world size
+  const rep   = sizeM / (tileM * 2);
   tex.repeat.set(rep, rep);
 
-  /*
-   *  WHY MeshBasicMaterial + polygonOffset instead of MeshStandardMaterial + Y nudge:
-   *
-   *  MeshStandardMaterial responds to scene lights, making the tile look
-   *  brighter or darker than the real floor under the phone's actual lighting
-   *  → tile looks "pasted on top".
-   *
-   *  MeshBasicMaterial ignores lights entirely, so its colour comes straight
-   *  from the texture. The real floor's reflected light is already in the
-   *  camera feed. Combined with opacity the result feels like the tile IS
-   *  the floor rather than floating above it.
-   *
-   *  polygonOffset (factor=-2, units=-2) nudges the tile toward the camera
-   *  in clip space — no actual Y movement, so it never lifts off the surface.
-   *  It purely resolves the z-fighting that happens when two surfaces share
-   *  the exact same depth value.
-   *
-   *  depthWrite:true  — the tile writes depth so objects in front of it
-   *                     (chair legs, feet) correctly occlude the tile edges.
-   */
   const mat = new THREE.MeshBasicMaterial({
     map:                 tex,
     transparent:         true,
@@ -285,60 +336,120 @@ function buildFloorMesh(sizeM) {
     side:                THREE.FrontSide,
   });
 
-  const geo = new THREE.PlaneGeometry(sizeM, sizeM);
-  floorMesh = new THREE.Mesh(geo, mat);
-  // PlaneGeometry faces +Z by default; rotate to lie flat on XZ plane
-  floorMesh.rotation.x = -Math.PI / 2;
-  // Zero local offset — the group already sits at the exact floor Y
+  // PlaneGeometry lies in XY by default — rotate once to be flat on XZ
+  const geo  = new THREE.PlaneGeometry(sizeM, sizeM, 1, 1);
+  floorMesh  = new THREE.Mesh(geo, mat);
+  floorMesh.rotation.x  = -Math.PI / 2;
   floorMesh.renderOrder = 0;
   floorGroup.add(floorMesh);
 }
 
-// ─── Place tile ────────────────────────────────────────────────────────────
-function placeTile() {
-  if (!latestHitMatrix) { setStatus('Point at the floor first'); return; }
+// ─── Core: update tile live from a detected surface point ─────────────────
+/*
+ *  Called every XR frame with the world-space position of the detected surface.
+ *
+ *  Floor Y stabilisation — why it matters:
+ *  Hit-test poses jitter slightly (~2–5 mm) frame to frame.  If we apply Y
+ *  directly the tile appears to "float" up and down.  We run an exponential
+ *  moving average on Y only — which damps the jitter — while X/Z are lerped
+ *  smoothly so the tile centre follows the camera's forward projection on
+ *  the floor without lag.
+ *
+ *  Quaternion identity — why we don't inherit the hit-normal's rotation:
+ *  The hit-test normal can tilt a few degrees on mildly uneven floors.
+ *  Inheriting that tilt makes the tile visually lift off the far edge.
+ *  Forcing identity keeps the tile perfectly horizontal and matched to the
+ *  real floor plane.
+ */
+function updateTileLive(worldPos) {
+  // ── Stabilise floor Y ──────────────────────────────────────────────────
+  if (floorY === null) {
+    floorY = worldPos.y;
+  } else {
+    floorY += (worldPos.y - floorY) * FLOOR_Y_ALPHA;
+  }
 
-  // Decompose the hit-test pose matrix → world position + orientation
-  const m4  = new THREE.Matrix4().fromArray(latestHitMatrix);
-  const pos  = new THREE.Vector3();
-  const quat = new THREE.Quaternion();
-  const scl  = new THREE.Vector3();
-  m4.decompose(pos, quat, scl);
+  // Target XZ follows hit point; Y is the stabilised floor level
+  targetPos.set(worldPos.x, floorY, worldPos.z);
 
-  // Remove any previous placement
-  if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
+  // ── First detection: create the group and mesh ─────────────────────────
+  if (!floorGroup) {
+    floorGroup = new THREE.Group();
+    floorGroup.position.copy(targetPos);
+    currentPos.copy(targetPos);
+    floorGroup.quaternion.identity();
+    // Start tiny so it can scale in (the "spreading" reveal)
+    floorGroup.scale.setScalar(0.001);
+    scene.add(floorGroup);
 
-  floorGroup = new THREE.Group();
+    coverM = parseFloat(document.getElementById('tile-size-slider').value) * 0.55;
+    buildFloorMesh(coverM);
 
-  // ★ Position the group at EXACTLY the hit surface — no Y adjustments
-  floorGroup.position.copy(pos);
+    // Switch HUD to spreading state
+    document.getElementById('scan-ring').style.opacity     = '0';
+    document.getElementById('spread-pulse').style.display  = 'block';
+    setStatus('✨ Tiles spreading — explore your floor!');
+    isTracking = true;
+  }
 
-  // Keep the group rotation flat (identity) — we don't want to inherit
-  // any tilt from the hit-test normal on slightly uneven floors.
-  // This also means the tile stays perfectly horizontal even if the camera
-  // was angled when the user tapped.
-  floorGroup.quaternion.identity();
+  // ── While unlocked: smoothly move centre toward hit point ─────────────
+  if (!isLocked) {
+    currentPos.lerp(targetPos, LERP_POS);
+    floorGroup.position.copy(currentPos);
+    // Always keep flat — no tilt from surface normals
+    floorGroup.quaternion.identity();
+  }
 
-  scene.add(floorGroup);
-
-  const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.5;
-  buildFloorMesh(sizeM);
-
-  floorPlaced = true;
-  reticle.visible = false;
-  document.getElementById('reticle-ring').style.opacity = '0';
-  document.getElementById('place-btn').textContent = '✓ PLACED';
-  setStatus('Tile placed — walk around to inspect!');
+  // ── Animate the spread-in scale (0 → 1 over ~18 frames) ──────────────
+  const s = floorGroup.scale.x;
+  if (s < 1.0) {
+    const ns = Math.min(1.0, s + LERP_SCALE);
+    floorGroup.scale.setScalar(ns);
+  }
 }
-window.placeTile = placeTile;
 
+// ─── Lock / unlock ────────────────────────────────────────────────────────
+function toggleLock() {
+  if (!isTracking) return;   // Nothing placed yet
+  isLocked = !isLocked;
+  const btn = document.getElementById('lock-btn');
+
+  if (isLocked) {
+    btn.textContent = '🔓 Unlock';
+    btn.classList.remove('active-live');
+    btn.classList.add('active-lock');
+    document.getElementById('lock-badge').style.display   = 'block';
+    document.getElementById('spread-pulse').style.display = 'none';
+    setStatus('Tile locked — walk around to inspect!');
+  } else {
+    btn.textContent = '🔒 Lock';
+    btn.classList.remove('active-lock');
+    btn.classList.add('active-live');
+    document.getElementById('lock-badge').style.display   = 'none';
+    document.getElementById('spread-pulse').style.display = 'block';
+    setStatus('✨ Live spreading active');
+  }
+}
+window.toggleLock = toggleLock;
+
+// ─── Reset ────────────────────────────────────────────────────────────────
 function resetAR() {
   if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
-  floorPlaced     = false;
-  latestHitMatrix = null;
+  isLocked   = false;
+  isTracking = false;
+  floorY     = null;
+  targetPos.set(0,0,0);
+  currentPos.set(0,0,0);
+
+  const btn = document.getElementById('lock-btn');
+  btn.textContent = '🔒 Lock';
+  btn.classList.remove('active-lock');
+  btn.classList.add('active-live');
+
+  document.getElementById('scan-ring').style.opacity    = '1';
+  document.getElementById('spread-pulse').style.display = 'none';
+  document.getElementById('lock-badge').style.display   = 'none';
   reticle.visible = false;
-  document.getElementById('reticle-ring').style.opacity = '1';
-  document.getElementById('place-btn').textContent = 'TAP TO PLACE';
   setStatus('Move phone slowly over the floor…');
 }
 window.resetAR = resetAR;
@@ -353,21 +464,20 @@ function initThree() {
   renderer.xr.enabled = true;
   renderer.setClearColor(0x000000, 0);
   renderer.sortObjects = true;
-
   document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-  // Minimal light — only affects reticle (MeshBasicMaterial ignores lights)
+  // Ambient light only — MeshBasicMaterial ignores it, but reticle uses MeshBasicMaterial too
   scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
-  // Reticle — thin ring lying on the floor, updated from hit-test every frame
-  const rGeo = new THREE.RingGeometry(0.06, 0.09, 36);
+  // Reticle ring (shown while scanning; hidden once tiles are live)
+  const rGeo = new THREE.RingGeometry(0.05, 0.08, 36);
   rGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
   reticle = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({
     color:       0xf0d080,
     side:        THREE.DoubleSide,
     depthWrite:  false,
     transparent: true,
-    opacity:     0.9,
+    opacity:     0.85,
   }));
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
@@ -383,29 +493,36 @@ async function startAR() {
   document.getElementById('landing').style.display = 'none';
   initThree();
 
+  // Request hit-test (required) + plane-detection / local-floor (optional, improves accuracy)
+  const sessionOpts = {
+    requiredFeatures: ['hit-test'],
+    optionalFeatures: ['dom-overlay', 'plane-detection', 'local-floor'],
+    domOverlay: { root: document.getElementById('hud') },
+  };
+
   try {
-    xrSession = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay'],
-      domOverlay: { root: document.getElementById('hud') }
-    });
+    xrSession = await navigator.xr.requestSession('immersive-ar', sessionOpts);
   } catch (e) {
+    // Fallback: drop optional features if the device rejects them
     try {
       xrSession = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test'],
         optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: document.getElementById('hud') }
+        domOverlay: { root: document.getElementById('hud') },
       });
     } catch (e2) { showNotSupported(); return; }
   }
 
+  // Prefer local-floor reference for accurate floor-level Y (falls back to local)
   renderer.xr.setReferenceSpaceType('local');
   await renderer.xr.setSession(xrSession);
 
   xrSession.addEventListener('end', () => {
-    document.getElementById('hud').style.display = 'none';
+    document.getElementById('hud').style.display    = 'none';
     document.getElementById('landing').style.display = 'flex';
     hitTestSource = null; hitTestSourceRequested = false;
-    floorPlaced = false; floorGroup = null; floorMesh = null; latestHitMatrix = null;
+    floorGroup = null; floorMesh = null;
+    isLocked = false; isTracking = false; floorY = null;
   });
 
   document.getElementById('hud').style.display = 'block';
@@ -414,38 +531,101 @@ async function startAR() {
 }
 window.startAR = startAR;
 
-// ─── Render loop ──────────────────────────────────────────────────────────
+// ─── XR render loop ───────────────────────────────────────────────────────
+/*
+ *  Priority order for floor detection each frame:
+ *  1. XR Plane Detection (most accurate — gives actual plane geometry)
+ *  2. Hit-Test against scene geometry (good — continuous ray against meshes)
+ *
+ *  When NOT locked, both paths call updateTileLive() every frame, so the
+ *  tile tracks the floor as the user walks around.  When locked, neither
+ *  path moves the tile — it stays frozen at the last confirmed position.
+ */
 function onXRFrame(time, frame) {
   if (!frame) return;
 
-  const session  = frame.session;
   const refSpace = renderer.xr.getReferenceSpace();
 
+  // Lazy-initialise hit-test source (once per session)
   if (!hitTestSourceRequested) {
-    session.requestReferenceSpace('viewer').then(vs => {
-      session.requestHitTestSource({ space: vs })
+    frame.session.requestReferenceSpace('viewer').then(vs => {
+      frame.session.requestHitTestSource({ space: vs })
         .then(src => { hitTestSource = src; })
-        .catch(() => setStatus('Hit-test unavailable'));
+        .catch(() => setStatus('Hit-test not available on this device'));
     });
     hitTestSourceRequested = true;
   }
 
-  // While not yet placed: drive reticle from hit-test and cache the matrix
-  if (hitTestSource && refSpace && !floorPlaced) {
+  // ── 1. XR Plane Detection ─────────────────────────────────────────────
+  let handledByPlane = false;
+
+  if (!isLocked && frame.detectedPlanes && frame.detectedPlanes.size > 0) {
+    // Find the largest horizontal plane (most likely to be the floor)
+    let bestPlane = null, bestArea = -1;
+    for (const plane of frame.detectedPlanes) {
+      if (plane.orientation !== 'horizontal') continue;
+      // Rough area estimate from polygon
+      const pts = plane.polygon;
+      if (!pts || pts.length < 3) continue;
+      let area = 0;
+      for (let i = 0, n = pts.length; i < n; i++) {
+        const a = pts[i], b = pts[(i+1) % n];
+        area += a.x * b.z - b.x * a.z;
+      }
+      area = Math.abs(area) * 0.5;
+      if (area > bestArea) { bestArea = area; bestPlane = plane; }
+    }
+
+    if (bestPlane) {
+      const planePose = frame.getPose(bestPlane.planeSpace, refSpace);
+      if (planePose) {
+        const m4  = new THREE.Matrix4().fromArray(planePose.transform.matrix);
+        const pos = new THREE.Vector3();
+        m4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+
+        // Fuse the plane's centre with the hit-test point for XZ, use plane Y for floor level
+        updateTileLive(pos);
+        handledByPlane = true;
+        reticle.visible = false;
+      }
+    }
+  }
+
+  // ── 2. Hit-Test fallback (or XZ refinement when plane doesn't have cursor) ──
+  if (hitTestSource && refSpace) {
     const hits = frame.getHitTestResults(hitTestSource);
     if (hits.length > 0) {
       const pose = hits[0].getPose(refSpace);
       if (pose) {
-        // Cache as a proper JS Array so it doesn't get recycled by the XR runtime
-        latestHitMatrix = Array.from(pose.transform.matrix);
-        reticle.visible = true;
-        reticle.matrix.fromArray(latestHitMatrix);
-        setStatus('Floor detected — tap PLACE!');
+        const m4  = new THREE.Matrix4().fromArray(pose.transform.matrix);
+        const pos = new THREE.Vector3();
+        m4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+
+        if (!handledByPlane) {
+          // Primary path: plane detection not available or didn't fire
+          updateTileLive(pos);
+        } else if (!isLocked) {
+          // Secondary path: plane gave floor Y, hit-test refines XZ cursor position
+          // Blend hit-test XZ into the target so tile follows camera gaze on the plane
+          targetPos.x += (pos.x - targetPos.x) * 0.5;
+          targetPos.z += (pos.z - targetPos.z) * 0.5;
+        }
+
+        // Reticle: show only while scanning (before first detection)
+        if (!isTracking) {
+          reticle.visible = true;
+          reticle.matrix.fromArray(Array.from(pose.transform.matrix));
+        } else {
+          reticle.visible = false;
+        }
+
+        if (!isTracking) setStatus('Floor found — spreading tiles…');
       }
     } else {
-      latestHitMatrix = null;
-      reticle.visible = false;
-      setStatus('Move phone slowly over the floor…');
+      if (!isTracking) {
+        reticle.visible = false;
+        setStatus('Move phone slowly over the floor…');
+      }
     }
   }
 
@@ -459,12 +639,13 @@ function setupUI() {
       document.querySelectorAll('.tile-thumb').forEach(t => t.classList.remove('active'));
       el.classList.add('active');
       currentTileIdx = parseInt(el.dataset.idx);
-      if (floorGroup) buildFloorMesh(parseFloat(document.getElementById('tile-size-slider').value) * 0.5);
+      if (floorGroup) buildFloorMesh(coverM);
     });
   });
 
   document.getElementById('tile-size-slider').addEventListener('input', e => {
-    if (floorGroup) buildFloorMesh(parseFloat(e.target.value) * 0.5);
+    coverM = parseFloat(e.target.value) * 0.55;
+    if (floorGroup) buildFloorMesh(coverM);
   });
 
   document.getElementById('opacity-slider').addEventListener('input', e => {
@@ -473,13 +654,19 @@ function setupUI() {
   });
 }
 
-function setStatus(msg) { const el = document.getElementById('status'); if (el) el.textContent = msg; }
+function setStatus(msg) {
+  const el = document.getElementById('status');
+  if (el) el.textContent = msg;
+}
+
 function showNotSupported() {
-  document.getElementById('landing').style.display = 'none';
+  document.getElementById('landing').style.display       = 'none';
   document.getElementById('not-supported').style.display = 'flex';
 }
 
-window.addEventListener('resize', () => { if (renderer) renderer.setSize(window.innerWidth, window.innerHeight); });
+window.addEventListener('resize', () => {
+  if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
