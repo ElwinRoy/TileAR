@@ -29,7 +29,6 @@
   @keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
   .note { margin-top: 24px; font-size: 11px; color: #555; text-align: center; line-height: 1.6; max-width: 280px; }
 
-  /* ── HUD ─────────────────────────────────────────── */
   #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
 
   #status {
@@ -38,16 +37,13 @@
     border: 1px solid #f0d08033; border-radius: 24px;
     padding: 10px 20px; color: #f0d080; font-size: 13px;
     font-weight: 600; letter-spacing: .5px; text-align: center; white-space: nowrap;
-    transition: opacity .4s;
   }
 
-  /* Scanning pulse — shown while searching for floor */
   #scan-ring {
     position: absolute; top: 50%; left: 50%;
     width: 72px; height: 72px;
     border: 2px solid transparent;
-    border-top-color: #f0d080;
-    border-right-color: #f0d08044;
+    border-top-color: #f0d080; border-right-color: #f0d08044;
     border-radius: 50%;
     transform: translate(-50%,-50%);
     animation: spin 1.2s linear infinite;
@@ -55,32 +51,27 @@
   }
   @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
-  /* Spread ripple — shown while tiles are live-spreading */
   #spread-pulse {
     position: absolute; top: 50%; left: 50%;
-    width: 40px; height: 40px;
-    border: 2px solid #f0d080;
-    border-radius: 50%;
+    width: 44px; height: 44px;
+    border: 2px solid #f0d080; border-radius: 50%;
     transform: translate(-50%,-50%) scale(1);
-    opacity: 0;
-    display: none;
-    animation: spread-ripple 1.8s ease-out infinite;
+    opacity: 0; display: none;
+    animation: spread-ripple 2s ease-out infinite;
   }
   @keyframes spread-ripple {
-    0%   { transform: translate(-50%,-50%) scale(0.6); opacity: 0.8; }
-    100% { transform: translate(-50%,-50%) scale(3.5); opacity: 0; }
+    0%   { transform: translate(-50%,-50%) scale(0.5); opacity: 0.9; }
+    100% { transform: translate(-50%,-50%) scale(4.0); opacity: 0; }
   }
 
-  /* Lock indicator badge */
   #lock-badge {
-    position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 82px; left: 50%; transform: translateX(-50%);
     background: #1a5c2acc; border: 1px solid #60d08088;
     border-radius: 20px; padding: 6px 16px;
     color: #90f0a0; font-size: 12px; font-weight: 600; letter-spacing: 1px;
     display: none; white-space: nowrap;
   }
 
-  /* ── Tile picker ──────────────────────────────────── */
   #tile-picker {
     position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 12px; pointer-events: all;
@@ -91,7 +82,6 @@
   }
   .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
 
-  /* ── Sliders ──────────────────────────────────────── */
   #size-control {
     position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
@@ -110,7 +100,6 @@
   }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
 
-  /* ── Bottom buttons ───────────────────────────────── */
   #controls {
     position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 16px; pointer-events: all;
@@ -121,10 +110,9 @@
     font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap;
     transition: background .2s, border-color .2s, color .2s;
   }
-  .ctrl-btn.active-live  { background: #c8922acc; border-color: #f0d080aa; color: #fff8e0; }
-  .ctrl-btn.active-lock  { background: #1a7a2acc; border-color: #60d080aa; color: #e0ffec; }
+  .ctrl-btn.active-live { background: #c8922acc; border-color: #f0d080aa; color: #fff8e0; }
+  .ctrl-btn.active-lock { background: #1a7a2acc; border-color: #60d080aa; color: #e0ffec; }
 
-  /* ── Not-supported screen ─────────────────────────── */
   #not-supported {
     position: fixed; inset: 0; display: none; flex-direction: column;
     align-items: center; justify-content: center; background: #0a0a0a;
@@ -141,9 +129,9 @@
 <div id="landing">
   <div class="landing-icon">🪟</div>
   <div class="landing-title">AR Tile Visualizer</div>
-  <div class="landing-sub">Tiles live-spread on your real floor</div>
+  <div class="landing-sub">Tiles softly spread on your real floor</div>
   <button id="start-btn" onclick="startAR()">START AR</button>
-  <p class="note">Slowly scan your floor — tiles spread automatically across the surface. Tap LOCK to freeze, RESET to clear.</p>
+  <p class="note">Slowly scan your floor — tiles auto-spread with soft edges. Tap LOCK to freeze in place.</p>
 </div>
 
 <div id="not-supported">
@@ -179,7 +167,7 @@
 
   <div id="opacity-control">
     <span id="opacity-label">Blend</span>
-    <input type="range" id="opacity-slider" min="20" max="100" value="80" step="5"/>
+    <input type="range" id="opacity-slider" min="20" max="100" value="85" step="5"/>
   </div>
 
   <div id="controls">
@@ -187,6 +175,72 @@
     <button class="ctrl-btn active-live" id="lock-btn" onclick="toggleLock()">🔒 Lock</button>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     GLSL SHADERS — inline as script tags so they stay out of the module
+     and can be read as plain strings via .textContent
+  ═══════════════════════════════════════════════════════════════════════ -->
+
+<!--
+  VERTEX SHADER
+  Passes two UV sets to the fragment shader:
+    vUVtile  — multiplied by tileRepeat so the texture tiles at real-world size
+    vUVmask  — stays in [0,1] so the edge-fade math works independently
+               of how many times the texture repeats
+-->
+<script id="tile-vert" type="x-shader/x-vertex">
+  uniform vec2 tileRepeat;
+  varying vec2 vUVtile;
+  varying vec2 vUVmask;
+  void main() {
+    vUVmask  = uv;
+    vUVtile  = uv * tileRepeat;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+</script>
+
+<!--
+  FRAGMENT SHADER
+  Two responsibilities:
+  1. Sample the tile texture using the tiled UVs (can repeat many times).
+  2. Apply a soft radial fade using the mask UVs so the spreading edge
+     dissolves naturally rather than cutting off hard.
+
+  Edge math:
+    dist = distance from UV centre (0.5,0.5), scaled so corners are 1.0.
+    smoothstep(EDGE_START, EDGE_END, dist) ramps 0→1 over that band.
+    1.0 - that gives 1.0 in the opaque core, 0.0 at the transparent rim.
+
+  EDGE_START 0.42 keeps a wide fully-opaque centre (you see full tiles).
+  EDGE_END   0.90 gives a long, gentle dissolve rather than a sharp halo.
+  sqrt(0.5) ≈ 0.707 is the corner distance — anything above ~0.75 will
+  already be fully faded, so corners always go invisible regardless of shape.
+-->
+<script id="tile-frag" type="x-shader/x-fragment">
+  precision mediump float;
+
+  uniform sampler2D tileMap;
+  uniform float     opacity;
+
+  varying vec2 vUVtile;
+  varying vec2 vUVmask;
+
+  #define EDGE_START 0.42
+  #define EDGE_END   0.90
+
+  void main() {
+    /* ── Tile colour ─────────────────────────────────────── */
+    vec4 col = texture2D(tileMap, vUVtile);
+
+    /* ── Radial edge fade ───────────────────────────────── */
+    /* distance from UV centre → 0 at centre, ≈0.707 at corners      */
+    float dist = length(vUVmask - 0.5) * 1.414;   /* normalise so corner = 1 */
+    float edge = 1.0 - smoothstep(EDGE_START, EDGE_END, dist);
+
+    /* ── Final pixel ────────────────────────────────────── */
+    gl_FragColor = vec4(col.rgb, col.a * opacity * edge);
+  }
+</script>
 
 <script type="importmap">
 { "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
@@ -197,30 +251,43 @@ import * as THREE from 'three';
 
 // ─── State ────────────────────────────────────────────────────────────────
 let renderer, scene, camera;
-let xrSession             = null;
-let hitTestSource         = null;
+let xrSession              = null;
+let hitTestSource          = null;
 let hitTestSourceRequested = false;
 let reticle;
 
-let floorGroup   = null;   // Three.Group anchored to the floor
-let floorMesh    = null;   // The textured PlaneGeometry mesh inside the group
-let isLocked     = false;  // When true, tile position is frozen
-let isTracking   = false;  // True once we have our first floor detection
+let floorGroup = null;
+let floorMesh  = null;
+let isLocked   = false;
+let isTracking = false;
 let currentTileIdx = 0;
-let tileOpacity    = 0.80;
+let tileOpacity    = 0.85;
 
-// Smooth position tracking
 const targetPos  = new THREE.Vector3();
 const currentPos = new THREE.Vector3();
-const LERP_POS   = 0.07;   // How fast the tile centre follows the camera's floor projection
-const LERP_SCALE = 0.055;  // How fast the spread-in animation grows
+const LERP_POS   = 0.07;
+const LERP_SCALE = 0.055;
 
-// Stabilised floor Y (exponential moving average — prevents floating)
-let floorY       = null;
-const FLOOR_Y_ALPHA = 0.04; // Lower = more stable but slower to update if floor actually shifts
+/*
+ *  Floor Y stabilisation
+ *  ---------------------
+ *  Hit-test Y jitters ±3–5 mm per frame.  We EMA-smooth it AND bias toward
+ *  the minimum detected value — floor is always the lowest surface.
+ *  FLOOR_Y_ALPHA 0.03 → very slow drift, immune to furniture hits.
+ *  floorYMin tracks the running minimum; every N frames we "forget" a little
+ *  so the system can re-adapt if the user moves to a lower area.
+ */
+let floorY     = null;
+let floorYMin  = Infinity;
+let frameCount = 0;
+const FLOOR_Y_ALPHA = 0.03;
+const FLOOR_Y_FORGET_FRAMES = 180; // every ~3 s at 60 fps, relax the min by 1 mm
 
-// Current tile coverage radius in metres (driven by slider)
-let coverM = 3.0;
+let coverM = 3.3;  // total spread diameter in metres, driven by slider
+
+// ─── GLSL shader source (read from the inline <script> tags) ─────────────
+const VERT_SRC = document.getElementById('tile-vert').textContent;
+const FRAG_SRC = document.getElementById('tile-frag').textContent;
 
 // ─── Tile definitions ─────────────────────────────────────────────────────
 const TILES = [
@@ -235,7 +302,7 @@ const TILES = [
 const cl      = v => Math.max(0, Math.min(255, v));
 const hexToRgb = h  => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
 const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
-const lighten  = (h, a)   => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
+const lighten  = (h, a)   => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a),cl(g+255*a),cl(b+255*a)); };
 const darken   = (h, a)   => lighten(h, -a);
 
 function rRect(ctx, x, y, w, h, r) {
@@ -243,44 +310,50 @@ function rRect(ctx, x, y, w, h, r) {
   ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
   ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.lineTo(x,y+r);   ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath();
 }
-
 function addGrain(ctx, x, y, w, h, amt) {
   const id = ctx.getImageData(x,y,w,h), d = id.data;
   for (let i = 0; i < d.length; i += 4) {
     const n = (Math.random()-0.5)*255*amt;
     d[i]=cl(d[i]+n); d[i+1]=cl(d[i+1]+n); d[i+2]=cl(d[i+2]+n);
   }
-  ctx.putImageData(id, x, y);
+  ctx.putImageData(id,x,y);
 }
 
 // ─── Tile texture builder ─────────────────────────────────────────────────
+/*
+ *  Generates a 2×2 grid of tiles on a 1024×1024 canvas.
+ *  We do NOT bake an alpha mask into the texture here — the GLSL shader
+ *  handles the radial fade independently of how many times the texture
+ *  repeats, giving correct fade at the real mesh boundary regardless of
+ *  tile count.
+ */
 function makeTileTexture(idx) {
-  const SZ = 512, GROUT = 6, N = 2;
-  const cv  = document.createElement('canvas');
-  cv.width  = cv.height = SZ;
-  const ctx = cv.getContext('2d');
-  const t   = TILES[idx];
-  const tw  = SZ / N;
+  const SZ    = 1024, GROUT = 8, N = 2;
+  const cv    = document.createElement('canvas');
+  cv.width    = cv.height = SZ;
+  const ctx   = cv.getContext('2d');
+  const t     = TILES[idx];
+  const tw    = SZ / N;
 
   for (let row = 0; row < N; row++) {
     for (let col = 0; col < N; col++) {
       const x = col*tw + GROUT/2, y = row*tw + GROUT/2;
       const w = tw - GROUT,       h = tw - GROUT;
       const grd = ctx.createLinearGradient(x,y,x+w,y+h);
-      grd.addColorStop(0.0, lighten(t.base, 0.12));
+      grd.addColorStop(0.0, lighten(t.base, 0.14));
       grd.addColorStop(0.5, t.base);
-      grd.addColorStop(1.0, darken(t.base, 0.10));
+      grd.addColorStop(1.0, darken (t.base, 0.12));
       ctx.fillStyle = grd;
-      rRect(ctx,x,y,w,h,4); ctx.fill();
-      addGrain(ctx,x,y,w,h,0.04);
-      const hi = ctx.createLinearGradient(x,y,x+w*0.6,y+h*0.6);
+      rRect(ctx,x,y,w,h,5); ctx.fill();
+      addGrain(ctx,x,y,w,h,0.035);
+      const hi = ctx.createLinearGradient(x,y,x+w*0.55,y+h*0.55);
       hi.addColorStop(0, `rgba(255,255,255,${t.sheen})`);
       hi.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = hi;
-      rRect(ctx,x,y,w,h,4); ctx.fill();
+      rRect(ctx,x,y,w,h,5); ctx.fill();
     }
   }
   ctx.fillStyle = t.grout;
@@ -288,56 +361,69 @@ function makeTileTexture(idx) {
     ctx.fillRect(0, i*tw - GROUT/2, SZ, GROUT);
     ctx.fillRect(i*tw - GROUT/2, 0, GROUT, SZ);
   }
+
   const tex = new THREE.CanvasTexture(cv);
+  // RepeatWrapping so the shader can sample vUVtile (which goes >1) correctly
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  // Do NOT set tex.repeat here — the shader controls this via the tileRepeat uniform
   return tex;
 }
 
-// ─── Build / rebuild the floor mesh ──────────────────────────────────────
+// ─── Build / rebuild the ShaderMaterial floor mesh ────────────────────────
 /*
- *  WHY MeshBasicMaterial:
- *  It ignores scene lights, so its colour comes straight from the texture.
- *  The real floor's reflected light is already in the camera feed.
- *  Combined with opacity the tile feels embedded in the real surface rather
- *  than pasted on top of it.
+ *  Uses THREE.ShaderMaterial instead of MeshBasicMaterial so we can:
+ *    • Pass TWO UV channels (tiled vs mask) simultaneously
+ *    • Apply the radial smoothstep fade in the fragment shader
+ *      independently of texture repeat count
  *
- *  WHY polygonOffset:
- *  Without it, tile and floor share the same depth value → z-fighting flicker.
- *  polygonOffset nudges the tile toward the camera in clip space (no actual Y
- *  displacement), cleanly resolving the fighting without lifting the tile.
+ *  polygonOffset — pushes the tile toward the camera in NDC/clip space
+ *  without actually moving it in world space.  This resolves z-fighting
+ *  (tile and real floor sharing the same depth value) without lifting
+ *  the tile off the surface.
+ *
+ *  depthWrite true — so chairs, table legs, feet occlude the tile correctly.
  */
 function buildFloorMesh(sizeM) {
   if (!floorGroup) return;
 
+  // Dispose old mesh
   if (floorMesh) {
     floorGroup.remove(floorMesh);
     floorMesh.geometry.dispose();
-    if (floorMesh.material.map) floorMesh.material.map.dispose();
+    if (floorMesh.material.uniforms && floorMesh.material.uniforms.tileMap) {
+      floorMesh.material.uniforms.tileMap.value.dispose();
+    }
     floorMesh.material.dispose();
     floorMesh = null;
   }
 
-  // Individual tile physical size (0.10 m – 0.60 m based on slider)
+  // Individual tile physical size 0.10 m – 0.60 m
   const tileM = parseFloat(document.getElementById('tile-size-slider').value) * 0.05 + 0.10;
   const tex   = makeTileTexture(currentTileIdx);
-  // Repeat so each tile appears at the correct real-world size
-  const rep   = sizeM / (tileM * 2);
-  tex.repeat.set(rep, rep);
 
-  const mat = new THREE.MeshBasicMaterial({
-    map:                 tex,
-    transparent:         true,
-    opacity:             tileOpacity,
-    depthWrite:          true,
-    depthTest:           true,
+  // How many times the 2×2 texture repeats across sizeM metres
+  const rep = sizeM / (tileM * 2.0);
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      tileMap:    { value: tex },
+      tileRepeat: { value: new THREE.Vector2(rep, rep) },
+      opacity:    { value: tileOpacity },
+    },
+    vertexShader:   VERT_SRC,
+    fragmentShader: FRAG_SRC,
+    transparent:    true,
+    depthWrite:     true,
+    depthTest:      true,
     polygonOffset:       true,
     polygonOffsetFactor: -2,
     polygonOffsetUnits:  -2,
-    side:                THREE.FrontSide,
+    side: THREE.FrontSide,
   });
 
-  // PlaneGeometry lies in XY by default — rotate once to be flat on XZ
-  const geo  = new THREE.PlaneGeometry(sizeM, sizeM, 1, 1);
+  // Higher segment count gives the GPU more vertices to interpolate vUV
+  // across, giving the radial fade smoother sub-tile precision on large meshes.
+  const geo  = new THREE.PlaneGeometry(sizeM, sizeM, 8, 8);
   floorMesh  = new THREE.Mesh(geo, mat);
   floorMesh.rotation.x  = -Math.PI / 2;
   floorMesh.renderOrder = 0;
@@ -346,85 +432,101 @@ function buildFloorMesh(sizeM) {
 
 // ─── Core: update tile live from a detected surface point ─────────────────
 /*
- *  Called every XR frame with the world-space position of the detected surface.
+ *  WHY we stabilise Y separately from X/Z
+ *  ────────────────────────────────────────
+ *  X/Z follows the camera gaze on the floor (we WANT the spread to track).
+ *  Y must stay rock-solid at the true floor level — any vertical jitter
+ *  makes the tile appear to hover or sink.  We use two complementary
+ *  techniques:
  *
- *  Floor Y stabilisation — why it matters:
- *  Hit-test poses jitter slightly (~2–5 mm) frame to frame.  If we apply Y
- *  directly the tile appears to "float" up and down.  We run an exponential
- *  moving average on Y only — which damps the jitter — while X/Z are lerped
- *  smoothly so the tile centre follows the camera's forward projection on
- *  the floor without lag.
+ *  1. Exponential moving average (EMA) — damps high-frequency jitter.
+ *  2. Running minimum bias — the floor is always the LOWEST detected surface.
+ *     Furniture, mats, and cables are above floor level; keeping the minimum
+ *     ignores those accidental hits.
+ *  3. Y ceiling filter — reject any hit more than 15 cm above our established
+ *     floor level (catches table-top hits when the camera sweeps upward).
  *
- *  Quaternion identity — why we don't inherit the hit-normal's rotation:
- *  The hit-test normal can tilt a few degrees on mildly uneven floors.
- *  Inheriting that tilt makes the tile visually lift off the far edge.
- *  Forcing identity keeps the tile perfectly horizontal and matched to the
- *  real floor plane.
+ *  WHY quaternion identity on the group
+ *  ──────────────────────────────────────
+ *  Hit-test normals tilt on slightly uneven surfaces.  Inheriting that tilt
+ *  lifts the far edge of the tile off the real floor.  Identity rotation keeps
+ *  the plane perfectly horizontal regardless of surface imperfections.
  */
 function updateTileLive(worldPos) {
-  // ── Stabilise floor Y ──────────────────────────────────────────────────
-  if (floorY === null) {
-    floorY = worldPos.y;
-  } else {
-    floorY += (worldPos.y - floorY) * FLOOR_Y_ALPHA;
+  frameCount++;
+
+  // ── Floor Y stabilisation ──────────────────────────────────────────────
+  const y = worldPos.y;
+
+  // Every FLOOR_Y_FORGET_FRAMES, relax the running minimum by 1 mm
+  // (lets the system adapt if the user genuinely moves to a lower floor)
+  if (frameCount % FLOOR_Y_FORGET_FRAMES === 0 && floorYMin < Infinity) {
+    floorYMin += 0.001;
   }
 
-  // Target XZ follows hit point; Y is the stabilised floor level
+  // Ceiling filter: ignore hits more than 15 cm above established floor
+  if (floorY !== null && y > floorY + 0.15) return;
+
+  // Update running minimum (floor is always lowest)
+  floorYMin = Math.min(floorYMin, y);
+
+  if (floorY === null) {
+    floorY = floorYMin;
+  } else {
+    // EMA toward current hit, but biased toward the running minimum
+    const target = Math.min(y, floorYMin + 0.005); // allow 5 mm above min
+    floorY += (target - floorY) * FLOOR_Y_ALPHA;
+  }
+
+  // Target position: XZ follows hit, Y is the stabilised floor level
   targetPos.set(worldPos.x, floorY, worldPos.z);
 
-  // ── First detection: create the group and mesh ─────────────────────────
+  // ── First detection: create group ─────────────────────────────────────
   if (!floorGroup) {
     floorGroup = new THREE.Group();
     floorGroup.position.copy(targetPos);
     currentPos.copy(targetPos);
     floorGroup.quaternion.identity();
-    // Start tiny so it can scale in (the "spreading" reveal)
-    floorGroup.scale.setScalar(0.001);
+    floorGroup.scale.setScalar(0.001);  // will spread in via lerp
     scene.add(floorGroup);
 
     coverM = parseFloat(document.getElementById('tile-size-slider').value) * 0.55;
     buildFloorMesh(coverM);
 
-    // Switch HUD to spreading state
-    document.getElementById('scan-ring').style.opacity     = '0';
-    document.getElementById('spread-pulse').style.display  = 'block';
+    document.getElementById('scan-ring').style.opacity    = '0';
+    document.getElementById('spread-pulse').style.display = 'block';
     setStatus('✨ Tiles spreading — explore your floor!');
     isTracking = true;
   }
 
-  // ── While unlocked: smoothly move centre toward hit point ─────────────
+  // ── Live position update (while not locked) ───────────────────────────
   if (!isLocked) {
     currentPos.lerp(targetPos, LERP_POS);
     floorGroup.position.copy(currentPos);
-    // Always keep flat — no tilt from surface normals
-    floorGroup.quaternion.identity();
+    floorGroup.quaternion.identity();  // no tilt — always flat
   }
 
-  // ── Animate the spread-in scale (0 → 1 over ~18 frames) ──────────────
+  // ── Spread-in scale animation (0 → 1) ────────────────────────────────
   const s = floorGroup.scale.x;
   if (s < 1.0) {
-    const ns = Math.min(1.0, s + LERP_SCALE);
-    floorGroup.scale.setScalar(ns);
+    floorGroup.scale.setScalar(Math.min(1.0, s + LERP_SCALE));
   }
 }
 
-// ─── Lock / unlock ────────────────────────────────────────────────────────
+// ─── Lock / Unlock ────────────────────────────────────────────────────────
 function toggleLock() {
-  if (!isTracking) return;   // Nothing placed yet
+  if (!isTracking) return;
   isLocked = !isLocked;
   const btn = document.getElementById('lock-btn');
-
   if (isLocked) {
     btn.textContent = '🔓 Unlock';
-    btn.classList.remove('active-live');
-    btn.classList.add('active-lock');
+    btn.classList.replace('active-live','active-lock');
     document.getElementById('lock-badge').style.display   = 'block';
     document.getElementById('spread-pulse').style.display = 'none';
     setStatus('Tile locked — walk around to inspect!');
   } else {
     btn.textContent = '🔒 Lock';
-    btn.classList.remove('active-lock');
-    btn.classList.add('active-live');
+    btn.classList.replace('active-lock','active-live');
     document.getElementById('lock-badge').style.display   = 'none';
     document.getElementById('spread-pulse').style.display = 'block';
     setStatus('✨ Live spreading active');
@@ -435,17 +537,12 @@ window.toggleLock = toggleLock;
 // ─── Reset ────────────────────────────────────────────────────────────────
 function resetAR() {
   if (floorGroup) { scene.remove(floorGroup); floorGroup = null; floorMesh = null; }
-  isLocked   = false;
-  isTracking = false;
-  floorY     = null;
-  targetPos.set(0,0,0);
-  currentPos.set(0,0,0);
-
+  isLocked = false; isTracking = false;
+  floorY = null; floorYMin = Infinity; frameCount = 0;
+  targetPos.set(0,0,0); currentPos.set(0,0,0);
   const btn = document.getElementById('lock-btn');
   btn.textContent = '🔒 Lock';
-  btn.classList.remove('active-lock');
-  btn.classList.add('active-live');
-
+  btn.classList.replace('active-lock','active-live');
   document.getElementById('scan-ring').style.opacity    = '1';
   document.getElementById('spread-pulse').style.display = 'none';
   document.getElementById('lock-badge').style.display   = 'none';
@@ -454,7 +551,7 @@ function resetAR() {
 }
 window.resetAR = resetAR;
 
-// ─── Three.js bootstrap ───────────────────────────────────────────────────
+// ─── Three.js init ────────────────────────────────────────────────────────
 function initThree() {
   scene    = new THREE.Scene();
   camera   = new THREE.PerspectiveCamera();
@@ -465,19 +562,13 @@ function initThree() {
   renderer.setClearColor(0x000000, 0);
   renderer.sortObjects = true;
   document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-  // Ambient light only — MeshBasicMaterial ignores it, but reticle uses MeshBasicMaterial too
   scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
-  // Reticle ring (shown while scanning; hidden once tiles are live)
   const rGeo = new THREE.RingGeometry(0.05, 0.08, 36);
   rGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
   reticle = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({
-    color:       0xf0d080,
-    side:        THREE.DoubleSide,
-    depthWrite:  false,
-    transparent: true,
-    opacity:     0.85,
+    color: 0xf0d080, side: THREE.DoubleSide,
+    depthWrite: false, transparent: true, opacity: 0.85,
   }));
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
@@ -487,23 +578,32 @@ function initThree() {
 // ─── AR session ───────────────────────────────────────────────────────────
 async function startAR() {
   if (!navigator.xr) { showNotSupported(); return; }
-  const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-  if (!supported) { showNotSupported(); return; }
+  const ok = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+  if (!ok) { showNotSupported(); return; }
 
   document.getElementById('landing').style.display = 'none';
   initThree();
 
-  // Request hit-test (required) + plane-detection / local-floor (optional, improves accuracy)
-  const sessionOpts = {
-    requiredFeatures: ['hit-test'],
-    optionalFeatures: ['dom-overlay', 'plane-detection', 'local-floor'],
-    domOverlay: { root: document.getElementById('hud') },
-  };
+  /*
+   *  WHY local-floor as the reference space type
+   *  ─────────────────────────────────────────────
+   *  'local' sets the origin at the camera position when AR started (eye height).
+   *  The floor is therefore at Y ≈ −1.6 m in that space.
+   *  'local-floor' calibrates the origin so Y = 0 IS the real floor.
+   *  Hit-test results in local-floor give floor hits at Y ≈ 0, which
+   *  dramatically reduces floating — there's far less Y-error to EMA-damp.
+   *  If the device doesn't support local-floor it falls back to local
+   *  gracefully; our EMA+min stabilisation still applies.
+   */
+  renderer.xr.setReferenceSpaceType('local-floor');
 
   try {
-    xrSession = await navigator.xr.requestSession('immersive-ar', sessionOpts);
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay', 'plane-detection', 'local-floor'],
+      domOverlay: { root: document.getElementById('hud') },
+    });
   } catch (e) {
-    // Fallback: drop optional features if the device rejects them
     try {
       xrSession = await navigator.xr.requestSession('immersive-ar', {
         requiredFeatures: ['hit-test'],
@@ -513,8 +613,6 @@ async function startAR() {
     } catch (e2) { showNotSupported(); return; }
   }
 
-  // Prefer local-floor reference for accurate floor-level Y (falls back to local)
-  renderer.xr.setReferenceSpaceType('local');
   await renderer.xr.setSession(xrSession);
 
   xrSession.addEventListener('end', () => {
@@ -522,7 +620,8 @@ async function startAR() {
     document.getElementById('landing').style.display = 'flex';
     hitTestSource = null; hitTestSourceRequested = false;
     floorGroup = null; floorMesh = null;
-    isLocked = false; isTracking = false; floorY = null;
+    isLocked = false; isTracking = false;
+    floorY = null; floorYMin = Infinity; frameCount = 0;
   });
 
   document.getElementById('hud').style.display = 'block';
@@ -532,58 +631,42 @@ async function startAR() {
 window.startAR = startAR;
 
 // ─── XR render loop ───────────────────────────────────────────────────────
-/*
- *  Priority order for floor detection each frame:
- *  1. XR Plane Detection (most accurate — gives actual plane geometry)
- *  2. Hit-Test against scene geometry (good — continuous ray against meshes)
- *
- *  When NOT locked, both paths call updateTileLive() every frame, so the
- *  tile tracks the floor as the user walks around.  When locked, neither
- *  path moves the tile — it stays frozen at the last confirmed position.
- */
 function onXRFrame(time, frame) {
   if (!frame) return;
 
   const refSpace = renderer.xr.getReferenceSpace();
 
-  // Lazy-initialise hit-test source (once per session)
   if (!hitTestSourceRequested) {
     frame.session.requestReferenceSpace('viewer').then(vs => {
       frame.session.requestHitTestSource({ space: vs })
         .then(src => { hitTestSource = src; })
-        .catch(() => setStatus('Hit-test not available on this device'));
+        .catch(() => setStatus('Hit-test not available'));
     });
     hitTestSourceRequested = true;
   }
 
-  // ── 1. XR Plane Detection ─────────────────────────────────────────────
+  // ── 1. XR Plane Detection (more accurate; optional feature) ──────────
   let handledByPlane = false;
-
   if (!isLocked && frame.detectedPlanes && frame.detectedPlanes.size > 0) {
-    // Find the largest horizontal plane (most likely to be the floor)
     let bestPlane = null, bestArea = -1;
     for (const plane of frame.detectedPlanes) {
       if (plane.orientation !== 'horizontal') continue;
-      // Rough area estimate from polygon
       const pts = plane.polygon;
       if (!pts || pts.length < 3) continue;
       let area = 0;
       for (let i = 0, n = pts.length; i < n; i++) {
-        const a = pts[i], b = pts[(i+1) % n];
-        area += a.x * b.z - b.x * a.z;
+        const a = pts[i], b = pts[(i+1)%n];
+        area += a.x*b.z - b.x*a.z;
       }
-      area = Math.abs(area) * 0.5;
+      area = Math.abs(area)*0.5;
       if (area > bestArea) { bestArea = area; bestPlane = plane; }
     }
-
     if (bestPlane) {
       const planePose = frame.getPose(bestPlane.planeSpace, refSpace);
       if (planePose) {
         const m4  = new THREE.Matrix4().fromArray(planePose.transform.matrix);
         const pos = new THREE.Vector3();
         m4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
-
-        // Fuse the plane's centre with the hit-test point for XZ, use plane Y for floor level
         updateTileLive(pos);
         handledByPlane = true;
         reticle.visible = false;
@@ -591,7 +674,7 @@ function onXRFrame(time, frame) {
     }
   }
 
-  // ── 2. Hit-Test fallback (or XZ refinement when plane doesn't have cursor) ──
+  // ── 2. Hit-test (primary fallback, or XZ refinement) ─────────────────
   if (hitTestSource && refSpace) {
     const hits = frame.getHitTestResults(hitTestSource);
     if (hits.length > 0) {
@@ -602,37 +685,26 @@ function onXRFrame(time, frame) {
         m4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
 
         if (!handledByPlane) {
-          // Primary path: plane detection not available or didn't fire
           updateTileLive(pos);
         } else if (!isLocked) {
-          // Secondary path: plane gave floor Y, hit-test refines XZ cursor position
-          // Blend hit-test XZ into the target so tile follows camera gaze on the plane
-          targetPos.x += (pos.x - targetPos.x) * 0.5;
-          targetPos.z += (pos.z - targetPos.z) * 0.5;
+          // Refine XZ from hit-test cursor while plane gives floor Y
+          targetPos.x += (pos.x - targetPos.x) * 0.45;
+          targetPos.z += (pos.z - targetPos.z) * 0.45;
         }
 
-        // Reticle: show only while scanning (before first detection)
-        if (!isTracking) {
-          reticle.visible = true;
-          reticle.matrix.fromArray(Array.from(pose.transform.matrix));
-        } else {
-          reticle.visible = false;
-        }
-
-        if (!isTracking) setStatus('Floor found — spreading tiles…');
+        reticle.visible = !isTracking;
+        if (!isTracking) reticle.matrix.fromArray(Array.from(pose.transform.matrix));
       }
-    } else {
-      if (!isTracking) {
-        reticle.visible = false;
-        setStatus('Move phone slowly over the floor…');
-      }
+    } else if (!isTracking) {
+      reticle.visible = false;
+      setStatus('Move phone slowly over the floor…');
     }
   }
 
   renderer.render(scene, camera);
 }
 
-// ─── UI ───────────────────────────────────────────────────────────────────
+// ─── UI wiring ────────────────────────────────────────────────────────────
 function setupUI() {
   document.querySelectorAll('.tile-thumb').forEach(el => {
     el.addEventListener('click', () => {
@@ -650,23 +722,19 @@ function setupUI() {
 
   document.getElementById('opacity-slider').addEventListener('input', e => {
     tileOpacity = parseFloat(e.target.value) / 100;
-    if (floorMesh) floorMesh.material.opacity = tileOpacity;
+    // Update the shader uniform directly — no mesh rebuild needed
+    if (floorMesh && floorMesh.material.uniforms) {
+      floorMesh.material.uniforms.opacity.value = tileOpacity;
+    }
   });
 }
 
-function setStatus(msg) {
-  const el = document.getElementById('status');
-  if (el) el.textContent = msg;
-}
-
+function setStatus(msg) { const el=document.getElementById('status'); if(el) el.textContent=msg; }
 function showNotSupported() {
   document.getElementById('landing').style.display       = 'none';
   document.getElementById('not-supported').style.display = 'flex';
 }
-
-window.addEventListener('resize', () => {
-  if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
-});
+window.addEventListener('resize', () => { if (renderer) renderer.setSize(window.innerWidth, window.innerHeight); });
 </script>
 </body>
 </html>
