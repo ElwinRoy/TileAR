@@ -23,8 +23,9 @@ let heightOffset = 0.0;
 let previousHeightOffset = 0.0;
 
 // Smooth hit-test reticle to reduce visible jitter in fallback mode.
-const HIT_POSE_SMOOTHING_FRAMES = 8;
+const HIT_POSE_SMOOTHING_FRAMES = 4;
 const hitPoseSamples = [];
+let autoPlaceArmed = false;
 
 const TILES = [
   { name: 'Gold', base: '#c8a84b', grout: '#6b4c1e', sheen: 0.30 },
@@ -330,6 +331,7 @@ function resetAR() {
   firstHitPlaced = false; isLocked = false;
   hitPoseSamples.length = 0;
   previousHeightOffset = heightOffset;
+  autoPlaceArmed = false;
   document.getElementById('lock-btn').textContent = '🔒 Lock';
   document.getElementById('lock-btn').classList.remove('active-lock');
   document.getElementById('scan-ring').style.opacity = '1';
@@ -518,21 +520,34 @@ function onXRFrame(time, frame) {
       const pose = hits[0].getPose(refSpace);
       if (pose) {
         const smoothedMatrix = smoothPoseMatrix(Array.from(pose.transform.matrix));
+        const canAutoPlace = !hasPlaneDetection && !firstHitPlaced && !isLocked;
 
         if (!hasPlaneDetection) {
           if (!firstHitPlaced) {
             reticle.visible = true;
             reticle.matrix.copy(smoothedMatrix);
-            setStatus('Surface found — tap to place tiles');
+            setStatus('Surface found — placing tiles…');
+            autoPlaceArmed = true;
           } else { reticle.visible = false; }
         } else if (trackedPlanes.size === 0) {
           reticle.visible = true;
           reticle.matrix.copy(smoothedMatrix);
           setStatus('Scanning for surfaces…');
         }
+
+        if (canAutoPlace && autoPlaceArmed && hitPoseSamples.length >= HIT_POSE_SMOOTHING_FRAMES) {
+          anchorMesh = createAnchorMesh(Array.from(smoothedMatrix.elements));
+          scene.add(anchorMesh);
+          firstHitPlaced = true;
+          autoPlaceArmed = false;
+          reticle.visible = false;
+          document.getElementById('scan-ring').style.opacity = '0';
+          setStatus('✨ Tile placed — anchored to surface!');
+        }
       }
     } else if (!hasPlaneDetection && !firstHitPlaced) {
       hitPoseSamples.length = 0;
+      autoPlaceArmed = false;
       reticle.visible = false;
       setStatus('Move phone slowly over surfaces…');
     }
@@ -601,7 +616,6 @@ function setupUI() {
       }
     }
   });
-  document.getElementById('hud').addEventListener('click', onTapPlace);
 }
 
 function setStatus(msg) { const el = document.getElementById('status'); if (el) el.textContent = msg; }
