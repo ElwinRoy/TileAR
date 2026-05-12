@@ -14,6 +14,8 @@ let tileOpacity = 0.95;
 let surfaceMode = 'floor';
 
 const trackedPlanes = new Map();
+let primaryFloorPlane = null;
+let primaryFloorMesh = null;
 let anchorMesh = null;
 let hasPlaneDetection = false;
 let firstHitPlaced = false;
@@ -185,6 +187,17 @@ function createPlaneGeometry(polygon) {
   return geometry;
 }
 
+function polygonAreaXZ(polygon) {
+  if (!polygon || polygon.length < 3) return 0;
+  let area = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    area += a.x * b.z - b.x * a.z;
+  }
+  return Math.abs(area) * 0.5;
+}
+
 function createTileMaterial() {
   const tex = makeTileTexture(currentTileIdx);
   return new THREE.MeshBasicMaterial({
@@ -266,6 +279,15 @@ function rebuildAllPlaneMeshes() {
     scene.add(newMesh);
     data.mesh = newMesh;
   }
+  if (primaryFloorMesh) {
+    const saved = primaryFloorMesh.matrix.clone();
+    scene.remove(primaryFloorMesh);
+    primaryFloorMesh.geometry.dispose();
+    if (primaryFloorMesh.material.map) primaryFloorMesh.material.map.dispose();
+    primaryFloorMesh.material.dispose();
+    primaryFloorMesh = createPlaneTileMesh(primaryFloorPlane, saved.elements);
+    if (primaryFloorMesh) scene.add(primaryFloorMesh);
+  }
   if (anchorMesh) rebuildAnchorMesh();
 }
 
@@ -323,6 +345,14 @@ function resetAR() {
     data.mesh.material.dispose();
   }
   trackedPlanes.clear();
+  primaryFloorPlane = null;
+  if (primaryFloorMesh) {
+    scene.remove(primaryFloorMesh);
+    primaryFloorMesh.geometry.dispose();
+    if (primaryFloorMesh.material.map) primaryFloorMesh.material.map.dispose();
+    primaryFloorMesh.material.dispose();
+    primaryFloorMesh = null;
+  }
   if (anchorMesh) {
     scene.remove(anchorMesh); anchorMesh.geometry.dispose();
     if (anchorMesh.material.map) anchorMesh.material.map.dispose();
@@ -461,6 +491,9 @@ function onXRFrame(time, frame) {
 
     if (!isLocked) {
       let floorCount = 0, wallCount = 0;
+      let bestFloorPlane = null;
+      let bestFloorPose = null;
+      let bestFloorArea = 0;
 
       for (const plane of frame.detectedPlanes) {
         const pose = frame.getPose(plane.planeSpace, refSpace);
@@ -482,7 +515,17 @@ function onXRFrame(time, frame) {
         if (surfaceMode === 'floor' && !isHoriz) continue;
         if (surfaceMode === 'wall' && !isVert) continue;
         if (!isHoriz && !isVert) continue;
-        if (isHoriz) floorCount++; else wallCount++;
+        if (isHoriz) {
+          floorCount++;
+          const area = polygonAreaXZ(plane.polygon);
+          if (area >= bestFloorArea) {
+            bestFloorArea = area;
+            bestFloorPlane = plane;
+            bestFloorPose = pose;
+          }
+          continue;
+        }
+        wallCount++;
 
         if (trackedPlanes.has(plane)) {
           const data = trackedPlanes.get(plane);
@@ -505,6 +548,44 @@ function onXRFrame(time, frame) {
           });
         }
       }
+
+      if (surfaceMode !== 'wall') {
+        for (const [plane, data] of trackedPlanes) {
+          if (data.type !== 'floor' || plane === primaryFloorPlane) continue;
+          scene.remove(data.mesh);
+          data.mesh.geometry.dispose();
+          if (data.mesh.material.map) data.mesh.material.map.dispose();
+          data.mesh.material.dispose();
+          trackedPlanes.delete(plane);
+        }
+
+        if (bestFloorPlane && bestFloorPose) {
+          if (primaryFloorPlane !== bestFloorPlane) {
+            if (primaryFloorMesh) {
+              scene.remove(primaryFloorMesh);
+              primaryFloorMesh.geometry.dispose();
+              if (primaryFloorMesh.material.map) primaryFloorMesh.material.map.dispose();
+              primaryFloorMesh.material.dispose();
+            }
+            primaryFloorPlane = bestFloorPlane;
+            primaryFloorMesh = createPlaneTileMesh(bestFloorPlane, bestFloorPose.transform.matrix);
+            if (primaryFloorMesh) scene.add(primaryFloorMesh);
+          } else if (primaryFloorMesh) {
+            applyPoseWithHeightOffset(primaryFloorMesh, bestFloorPose.transform.matrix, true);
+            const changeTime = bestFloorPlane.lastChangedTime || 0;
+            if (changeTime > (trackedPlanes.get(bestFloorPlane)?.lastUpdate || 0)) {
+              updatePlaneMeshGeometry(primaryFloorMesh, bestFloorPlane.polygon);
+            }
+            primaryFloorMesh.material.opacity = tileOpacity;
+          }
+          trackedPlanes.set(bestFloorPlane, {
+            mesh: primaryFloorMesh,
+            lastUpdate: bestFloorPlane.lastChangedTime || 0,
+            type: 'floor',
+          });
+        }
+      }
+
       updatePlaneCount(floorCount, wallCount);
       if (trackedPlanes.size > 0) {
         document.getElementById('scan-ring').style.opacity = '0';
@@ -585,6 +666,14 @@ function setupUI() {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       el.classList.add('active');
       surfaceMode = el.dataset.mode;
+      if (surfaceMode === 'floor' && primaryFloorMesh && trackedPlanes.size > 1) {
+        for (const [plane, data] of trackedPlanes) {
+          if (data.type !== 'floor' || plane === primaryFloorPlane) continue;
+          scene.remove(data.mesh); data.mesh.geometry.dispose();
+          if (data.mesh.material.map) data.mesh.material.map.dispose();
+          data.mesh.material.dispose(); trackedPlanes.delete(plane);
+        }
+      }
       for (const [plane, data] of trackedPlanes) {
         const keep = surfaceMode === 'both' ||
           (surfaceMode === 'floor' && data.type === 'floor') ||
