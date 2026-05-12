@@ -21,6 +21,7 @@ let firstHitPlaced = false;
 // Accurate floor Y from hit-test (more precise than plane detection)
 let hitTestFloorY = null;
 const floorYSamples = [];
+let heightOffset = -0.02; // User-adjustable height offset in meters
 function pushFloorY(y) {
   floorYSamples.push(y);
   if (floorYSamples.length > 30) floorYSamples.shift();
@@ -439,9 +440,10 @@ function onXRFrame(time, frame) {
           const data = trackedPlanes.get(plane);
           // Set world-anchored transform from plane pose
           data.mesh.matrix.fromArray(pose.transform.matrix);
-          // Override Y with hit-test floor Y (much more accurate)
-          if (isHoriz && hitTestFloorY !== null) {
-            data.mesh.matrix.elements[13] = hitTestFloorY;
+          // Apply floor height: use hit-test Y + user height offset
+          if (isHoriz) {
+            const baseY = hitTestFloorY !== null ? hitTestFloorY : data.mesh.matrix.elements[13];
+            data.mesh.matrix.elements[13] = baseY + heightOffset;
           }
           const changeTime = plane.lastChangedTime || 0;
           if (changeTime > data.lastUpdate) {
@@ -454,9 +456,10 @@ function onXRFrame(time, frame) {
         } else {
           const mesh = createPlaneTileMesh(plane, pose.transform.matrix);
           if (!mesh) continue;
-          // Override Y with hit-test floor Y (much more accurate)
-          if (isHoriz && hitTestFloorY !== null) {
-            mesh.matrix.elements[13] = hitTestFloorY;
+          // Apply floor height: use hit-test Y + user height offset
+          if (isHoriz) {
+            const baseY = hitTestFloorY !== null ? hitTestFloorY : mesh.matrix.elements[13];
+            mesh.matrix.elements[13] = baseY + heightOffset;
           }
           scene.add(mesh);
           trackedPlanes.set(plane, {
@@ -552,6 +555,10 @@ function setupUI() {
     tileOpacity = parseFloat(e.target.value) / 100;
     for (const [, data] of trackedPlanes) data.mesh.material.opacity = tileOpacity;
     if (anchorMesh) anchorMesh.material.opacity = tileOpacity;
+  });
+  // Height slider: adjusts floor tile Y offset in real-time (-5cm to +5cm)
+  document.getElementById('height-slider').addEventListener('input', e => {
+    heightOffset = parseFloat(e.target.value) / 1000; // mm to meters
   });
   document.getElementById('hud').addEventListener('click', onTapPlace);
 }
