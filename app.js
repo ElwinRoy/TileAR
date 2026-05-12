@@ -126,8 +126,9 @@ function buildSurfaceMesh(sizeX, sizeZ){
     polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4,
     side:THREE.DoubleSide,
   });
-  // PlaneGeometry lies in XY by default; rotate to XZ for horizontal surfaces
+  // PlaneGeometry lies in XY by default; rotate to XZ so plane pose orients correctly
   const geo=new THREE.PlaneGeometry(sizeX,sizeZ,1,1);
+  geo.rotateX(-Math.PI/2);
   const mesh=new THREE.Mesh(geo,mat);
   mesh.matrixAutoUpdate=false;
   mesh.renderOrder=1;
@@ -162,7 +163,9 @@ function updateFloorTile(pose, sizeX, sizeZ, cx, cz){
   const oldW=curGeo.parameters.width, oldH=curGeo.parameters.height;
   if(curSizeX>oldW*1.1||curSizeZ>oldH*1.1){
     floorMesh.geometry.dispose();
-    floorMesh.geometry=new THREE.PlaneGeometry(curSizeX,curSizeZ,1,1);
+    const newGeo=new THREE.PlaneGeometry(curSizeX,curSizeZ,1,1);
+    newGeo.rotateX(-Math.PI/2);
+    floorMesh.geometry=newGeo;
     // Update texture repeat
     const tileM=getTileM();
     floorMesh.material.map.repeat.set(curSizeX/(tileM*2),curSizeZ/(tileM*2));
@@ -189,7 +192,9 @@ function updateWallTile(pose, sizeX, sizeZ){
   const oldW=curGeo.parameters.width,oldH=curGeo.parameters.height;
   if(curSizeX>oldW*1.1||curSizeZ>oldH*1.1){
     wallMesh.geometry.dispose();
-    wallMesh.geometry=new THREE.PlaneGeometry(curSizeX,curSizeZ,1,1);
+    const newGeo=new THREE.PlaneGeometry(curSizeX,curSizeZ,1,1);
+    newGeo.rotateX(-Math.PI/2);
+    wallMesh.geometry=newGeo;
     const tileM=getTileM();
     wallMesh.material.map.repeat.set(curSizeX/(tileM*2),curSizeZ/(tileM*2));
   }
