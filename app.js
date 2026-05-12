@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-// ─── State ────────────────────────────────────────────────────────────────
 let renderer, scene, camera, gl;
 let xrSession = null;
 let hitTestSource = null;
@@ -19,35 +18,34 @@ let anchorMesh = null;
 let hasPlaneDetection = false;
 let firstHitPlaced = false;
 
-// ─── Tile definitions ─────────────────────────────────────────────────────
 const TILES = [
-  { name:'Gold',       base:'#c8a84b', grout:'#6b4c1e', sheen:0.30 },
-  { name:'Marble',     base:'#ddd8d0', grout:'#9a9590', sheen:0.50 },
-  { name:'Charcoal',   base:'#2e2e2e', grout:'#111111', sheen:0.18 },
-  { name:'Terracotta', base:'#c97b4b', grout:'#7a3e1e', sheen:0.14 },
-  { name:'Green',      base:'#3d7a52', grout:'#1a3d28', sheen:0.10 },
+  { name: 'Gold', base: '#c8a84b', grout: '#6b4c1e', sheen: 0.30 },
+  { name: 'Marble', base: '#ddd8d0', grout: '#9a9590', sheen: 0.50 },
+  { name: 'Charcoal', base: '#2e2e2e', grout: '#111111', sheen: 0.18 },
+  { name: 'Terracotta', base: '#c97b4b', grout: '#7a3e1e', sheen: 0.14 },
+  { name: 'Green', base: '#3d7a52', grout: '#1a3d28', sheen: 0.10 },
 ];
 
-const cl       = v => Math.max(0, Math.min(255, v));
-const hexToRgb = h => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
-const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
-const lighten  = (h, a) => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
-const darken   = (h, a) => lighten(h, -a);
+const cl = v => Math.max(0, Math.min(255, v));
+const hexToRgb = h => { const n = parseInt(h.replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const rgbToHex = (r, g, b) => '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+const lighten = (h, a) => { const [r, g, b] = hexToRgb(h); return rgbToHex(cl(r + 255 * a), cl(g + 255 * a), cl(b + 255 * a)); };
+const darken = (h, a) => lighten(h, -a);
 
 function rRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
 
 function addGrain(ctx, x, y, w, h, amt) {
-  const id = ctx.getImageData(x,y,w,h), d = id.data;
+  const id = ctx.getImageData(x, y, w, h), d = id.data;
   for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random()-0.5)*255*amt;
-    d[i]=cl(d[i]+n); d[i+1]=cl(d[i+1]+n); d[i+2]=cl(d[i+2]+n);
+    const n = (Math.random() - 0.5) * 255 * amt;
+    d[i] = cl(d[i] + n); d[i + 1] = cl(d[i + 1] + n); d[i + 2] = cl(d[i + 2] + n);
   }
   ctx.putImageData(id, x, y);
 }
@@ -61,26 +59,26 @@ function makeTileTexture(idx) {
   const tw = SZ / N;
   for (let row = 0; row < N; row++) {
     for (let col = 0; col < N; col++) {
-      const x = col*tw + GROUT/2, y = row*tw + GROUT/2;
+      const x = col * tw + GROUT / 2, y = row * tw + GROUT / 2;
       const w = tw - GROUT, h = tw - GROUT;
-      const grd = ctx.createLinearGradient(x,y,x+w,y+h);
+      const grd = ctx.createLinearGradient(x, y, x + w, y + h);
       grd.addColorStop(0, lighten(t.base, 0.12));
       grd.addColorStop(0.5, t.base);
       grd.addColorStop(1, darken(t.base, 0.10));
       ctx.fillStyle = grd;
-      rRect(ctx,x,y,w,h,4); ctx.fill();
-      addGrain(ctx,x,y,w,h,0.04);
-      const hi = ctx.createLinearGradient(x,y,x+w*0.6,y+h*0.6);
+      rRect(ctx, x, y, w, h, 4); ctx.fill();
+      addGrain(ctx, x, y, w, h, 0.04);
+      const hi = ctx.createLinearGradient(x, y, x + w * 0.6, y + h * 0.6);
       hi.addColorStop(0, `rgba(255,255,255,${t.sheen})`);
       hi.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = hi;
-      rRect(ctx,x,y,w,h,4); ctx.fill();
+      rRect(ctx, x, y, w, h, 4); ctx.fill();
     }
   }
   ctx.fillStyle = t.grout;
   for (let i = 0; i <= N; i++) {
-    ctx.fillRect(0, i*tw - GROUT/2, SZ, GROUT);
-    ctx.fillRect(i*tw - GROUT/2, 0, GROUT, SZ);
+    ctx.fillRect(0, i * tw - GROUT / 2, SZ, GROUT);
+    ctx.fillRect(i * tw - GROUT / 2, 0, GROUT, SZ);
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -93,8 +91,6 @@ function getTileRepeatSize() {
   return tileM * 2;
 }
 
-// ─── Depth Occlusion (WebXR Depth API) ────────────────────────────────────
-// Writes real-world depth to z-buffer so tiles behind objects get occluded
 function initDepthOcclusion() {
   if (!gl) return;
   const isWGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
@@ -129,7 +125,7 @@ function initDepthOcclusion() {
 
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
   const loc = gl.getAttribLocation(prog, 'aPos');
@@ -152,19 +148,16 @@ function renderDepthOcclusionPass(depthTexture, rawToMeters) {
   gl.bindTexture(gl.TEXTURE_2D, depthTexture);
   gl.uniform1i(depthOccluder.uDepthTex, 0);
   gl.uniform1f(depthOccluder.uRawToMeters, rawToMeters);
-  // Write depth only, no color
   gl.colorMask(false, false, false, false);
   gl.depthMask(true);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.ALWAYS);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  // Restore
   gl.colorMask(true, true, true, true);
   gl.depthFunc(gl.LEQUAL);
   gl.bindVertexArray(null);
 }
 
-// ─── Plane geometry from XRPlane polygon ──────────────────────────────────
 function createPlaneGeometry(polygon) {
   if (!polygon || polygon.length < 3) return null;
   const shape = new THREE.Shape();
@@ -188,7 +181,7 @@ function createTileMaterial() {
   return new THREE.MeshBasicMaterial({
     map: tex, transparent: true, opacity: tileOpacity,
     depthWrite: false, depthTest: true,
-    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
     side: THREE.DoubleSide,
   });
 }
@@ -241,7 +234,7 @@ function createAnchorMesh(poseMatrix) {
   const mat = new THREE.MeshBasicMaterial({
     map: tex, transparent: true, opacity: tileOpacity,
     depthWrite: false, depthTest: true,
-    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
     side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(sizeM, sizeM), mat);
@@ -262,7 +255,6 @@ function rebuildAnchorMesh() {
   scene.add(anchorMesh);
 }
 
-// ─── Controls ─────────────────────────────────────────────────────────────
 function toggleLock() {
   isLocked = !isLocked;
   const btn = document.getElementById('lock-btn');
@@ -301,7 +293,6 @@ function resetAR() {
 }
 window.resetAR = resetAR;
 
-// ─── Three.js + Depth Init ───────────────────────────────────────────────
 function initThree() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera();
@@ -325,11 +316,9 @@ function initThree() {
   reticle.visible = false;
   scene.add(reticle);
 
-  // Init depth occlusion shader
   initDepthOcclusion();
 }
 
-// ─── AR session ───────────────────────────────────────────────────────────
 async function startAR() {
   if (!navigator.xr) { showNotSupported(); return; }
   const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
@@ -338,7 +327,6 @@ async function startAR() {
   document.getElementById('landing').style.display = 'none';
   initThree();
 
-  // Request depth-sensing for object occlusion
   try {
     xrSession = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures: ['hit-test'],
@@ -359,7 +347,6 @@ async function startAR() {
     } catch (e2) { showNotSupported(); return; }
   }
 
-  // Create WebGL binding for depth texture access
   try { glBinding = new XRWebGLBinding(xrSession, gl); } catch (e) { glBinding = null; }
 
   renderer.xr.setReferenceSpaceType('local-floor');
@@ -380,7 +367,6 @@ async function startAR() {
 }
 window.startAR = startAR;
 
-// ─── XR render loop ───────────────────────────────────────────────────────
 function onXRFrame(time, frame) {
   if (!frame) return;
   const refSpace = renderer.xr.getReferenceSpace();
@@ -394,9 +380,6 @@ function onXRFrame(time, frame) {
     hitTestSourceRequested = true;
   }
 
-  // ── DEPTH OCCLUSION PASS ──────────────────────────────────────────────
-  // Writes real-world depth to z-buffer BEFORE tiles render.
-  // Objects on the floor (chairs, shoes, etc.) will occlude the tiles.
   let depthPassRan = false;
   if (glBinding && depthOccluder) {
     const viewerPose = frame.getViewerPose(refSpace);
@@ -411,11 +394,10 @@ function onXRFrame(time, frame) {
         } catch (e) { /* depth not available this frame */ }
       }
     }
-    // Reset Three.js GL state after raw WebGL calls
+
     renderer.state.reset();
   }
 
-  // ── PLANE DETECTION ───────────────────────────────────────────────────
   if (frame.detectedPlanes && frame.detectedPlanes.size > 0) {
     hasPlaneDetection = true;
     const currentPlanes = new Set(frame.detectedPlanes);
@@ -444,7 +426,13 @@ function onXRFrame(time, frame) {
 
         if (trackedPlanes.has(plane)) {
           const data = trackedPlanes.get(plane);
+          // Set world-anchored transform from plane pose
           data.mesh.matrix.fromArray(pose.transform.matrix);
+          // Nudge horizontal tiles 5mm downward to flush with real floor
+          if (isHoriz) {
+            const e = data.mesh.matrix.elements;
+            e[13] -= 0.005; // Y component of translation
+          }
           const changeTime = plane.lastChangedTime || 0;
           if (changeTime > data.lastUpdate) {
             updatePlaneMeshGeometry(data.mesh, plane.polygon);
@@ -456,6 +444,11 @@ function onXRFrame(time, frame) {
         } else {
           const mesh = createPlaneTileMesh(plane, pose.transform.matrix);
           if (!mesh) continue;
+          // Nudge horizontal tiles 5mm downward to flush with real floor
+          if (isHoriz) {
+            const e = mesh.matrix.elements;
+            e[13] -= 0.005;
+          }
           scene.add(mesh);
           trackedPlanes.set(plane, {
             mesh, lastUpdate: plane.lastChangedTime || 0,
@@ -472,7 +465,6 @@ function onXRFrame(time, frame) {
     }
   }
 
-  // ── HIT-TEST FALLBACK ─────────────────────────────────────────────────
   if (hitTestSource && refSpace) {
     const hits = frame.getHitTestResults(hitTestSource);
     if (hits.length > 0) {
@@ -496,7 +488,6 @@ function onXRFrame(time, frame) {
     }
   }
 
-  // Only skip depth clear when depth occlusion pass actually wrote depth values
   if (depthPassRan) {
     renderer.autoClearDepth = false;
     renderer.render(scene, camera);
@@ -515,7 +506,6 @@ function onTapPlace() {
   setStatus('✨ Tile placed — anchored to surface!');
 }
 
-// ─── UI ───────────────────────────────────────────────────────────────────
 function setupUI() {
   document.querySelectorAll('.tile-thumb').forEach(el => {
     el.addEventListener('click', () => {
