@@ -18,6 +18,16 @@ let anchorMesh = null;
 let hasPlaneDetection = false;
 let firstHitPlaced = false;
 
+// Accurate floor Y from hit-test (more precise than plane detection)
+let hitTestFloorY = null;
+const floorYSamples = [];
+function pushFloorY(y) {
+  floorYSamples.push(y);
+  if (floorYSamples.length > 30) floorYSamples.shift();
+  const sorted = [...floorYSamples].sort((a, b) => a - b);
+  hitTestFloorY = sorted[Math.floor(sorted.length / 2)];
+}
+
 const TILES = [
   { name: 'Gold', base: '#c8a84b', grout: '#6b4c1e', sheen: 0.30 },
   { name: 'Marble', base: '#ddd8d0', grout: '#9a9590', sheen: 0.50 },
@@ -283,6 +293,7 @@ function resetAR() {
     anchorMesh.material.dispose(); anchorMesh = null;
   }
   firstHitPlaced = false; isLocked = false;
+  hitTestFloorY = null; floorYSamples.length = 0;
   document.getElementById('lock-btn').textContent = '🔒 Lock';
   document.getElementById('lock-btn').classList.remove('active-lock');
   document.getElementById('scan-ring').style.opacity = '1';
@@ -428,10 +439,9 @@ function onXRFrame(time, frame) {
           const data = trackedPlanes.get(plane);
           // Set world-anchored transform from plane pose
           data.mesh.matrix.fromArray(pose.transform.matrix);
-          // Nudge horizontal tiles 5mm downward to flush with real floor
-          if (isHoriz) {
-            const e = data.mesh.matrix.elements;
-            e[13] -= 0.005; // Y component of translation
+          // Override Y with hit-test floor Y (much more accurate)
+          if (isHoriz && hitTestFloorY !== null) {
+            data.mesh.matrix.elements[13] = hitTestFloorY;
           }
           const changeTime = plane.lastChangedTime || 0;
           if (changeTime > data.lastUpdate) {
@@ -444,10 +454,9 @@ function onXRFrame(time, frame) {
         } else {
           const mesh = createPlaneTileMesh(plane, pose.transform.matrix);
           if (!mesh) continue;
-          // Nudge horizontal tiles 5mm downward to flush with real floor
-          if (isHoriz) {
-            const e = mesh.matrix.elements;
-            e[13] -= 0.005;
+          // Override Y with hit-test floor Y (much more accurate)
+          if (isHoriz && hitTestFloorY !== null) {
+            mesh.matrix.elements[13] = hitTestFloorY;
           }
           scene.add(mesh);
           trackedPlanes.set(plane, {
@@ -470,6 +479,12 @@ function onXRFrame(time, frame) {
     if (hits.length > 0) {
       const pose = hits[0].getPose(refSpace);
       if (pose) {
+        // Always track hit-test Y for accurate floor height
+        const htPos = new THREE.Vector3();
+        new THREE.Matrix4().fromArray(pose.transform.matrix)
+          .decompose(htPos, new THREE.Quaternion(), new THREE.Vector3());
+        pushFloorY(htPos.y);
+
         if (!hasPlaneDetection) {
           if (!firstHitPlaced) {
             reticle.visible = true;
