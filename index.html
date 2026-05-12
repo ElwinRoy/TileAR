@@ -10,6 +10,7 @@
   #canvas-container { position: fixed; inset: 0; }
   canvas { display: block; width: 100% !important; height: 100% !important; }
 
+  /* ── Landing ── */
   #landing {
     position: fixed; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -17,9 +18,9 @@
     z-index: 100; gap: 0;
   }
   .landing-icon { font-size: 72px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   .landing-title { font-size: 28px; font-weight: 700; color: #f0d080; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-  .landing-sub { font-size: 14px; color: #8a7a5a; margin-bottom: 48px; letter-spacing: 1px; }
+  .landing-sub   { font-size: 14px; color: #8a7a5a; margin-bottom: 48px; letter-spacing: 1px; }
   #start-btn {
     background: linear-gradient(135deg, #c8922a, #f0d080, #c8922a); background-size: 200% 200%;
     color: #1a0e00; border: none; border-radius: 50px; padding: 18px 48px;
@@ -29,8 +30,10 @@
   @keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
   .note { margin-top: 24px; font-size: 11px; color: #555; text-align: center; line-height: 1.6; max-width: 280px; }
 
+  /* ── HUD shell ── */
   #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
 
+  /* ── Status bar ── */
   #status {
     position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
     background: #000000cc; backdrop-filter: blur(12px);
@@ -40,12 +43,12 @@
     transition: opacity .4s;
   }
 
+  /* ── Scan ring ── */
   #scan-ring {
     position: absolute; top: 50%; left: 50%;
     width: 72px; height: 72px;
     border: 2px solid transparent;
-    border-top-color: #f0d080;
-    border-right-color: #f0d08044;
+    border-top-color: #f0d080; border-right-color: #f0d08044;
     border-radius: 50%;
     transform: translate(-50%,-50%);
     animation: spin 1.2s linear infinite;
@@ -53,6 +56,7 @@
   }
   @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
+  /* ── Lock badge ── */
   #lock-badge {
     position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
     background: #1a5c2acc; border: 1px solid #60d08088;
@@ -61,6 +65,7 @@
     display: none; white-space: nowrap;
   }
 
+  /* ── Surface mode ── */
   #surface-mode {
     position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 4px; pointer-events: all;
@@ -74,6 +79,7 @@
   }
   .mode-btn.active { background: #f0d08030; color: #f0d080; }
 
+  /* ── Tile picker ── */
   #tile-picker {
     position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 12px; pointer-events: all;
@@ -84,24 +90,36 @@
   }
   .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
 
-  #size-control {
-    position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
+  /* ── Vertical sliders ── */
+  #size-control, #opacity-control, #height-control {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: all;
   }
-  #size-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+  #size-control    { right: 20px; top: 50%; transform: translateY(-50%); }
+  #opacity-control { left: 20px;  top: 50%; transform: translateY(-50%); }
+  /* Height slider — centred, below midpoint so it doesn't clash */
+  #height-control  { right: 72px; top: 50%; transform: translateY(-50%); }
 
-  #opacity-control {
-    position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
+  .slider-label {
+    color: #f0d08099; font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; writing-mode: vertical-rl;
+    transform: rotate(180deg);
   }
-  #opacity-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
 
   input[type=range] {
     -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
-    width: 6px; height: 140px; background: #ffffff22; border-radius: 3px; outline: none; cursor: pointer;
+    width: 6px; height: 140px; background: #ffffff22; border-radius: 3px;
+    outline: none; cursor: pointer;
   }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px;
+    border-radius: 50%; background: #f0d080;
+  }
+  /* Height slider thumb: accent colour different so it's recognisable */
+  #height-slider::-webkit-slider-thumb { background: #80d0ff; }
 
+  /* ── Bottom controls ── */
   #controls {
     position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 16px; pointer-events: all;
@@ -112,8 +130,16 @@
     font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap;
     transition: background .2s, border-color .2s, color .2s;
   }
-  .ctrl-btn.active-lock  { background: #1a7a2acc; border-color: #60d080aa; color: #e0ffec; }
+  .ctrl-btn.active-lock { background: #1a7a2acc; border-color: #60d080aa; color: #e0ffec; }
 
+  /* ── Plane count ── */
+  #plane-count {
+    position: absolute; top: 32px; right: 20px;
+    background: #000a; border-radius: 12px; padding: 6px 12px;
+    color: #f0d080; font-size: 11px; font-weight: 600;
+  }
+
+  /* ── Not supported ── */
   #not-supported {
     position: fixed; inset: 0; display: none; flex-direction: column;
     align-items: center; justify-content: center; background: #0a0a0a;
@@ -121,19 +147,15 @@
   }
   #not-supported h2 { color: #f0d080; font-size: 22px; }
   #not-supported p  { color: #888; font-size: 14px; line-height: 1.6; max-width: 300px; }
-  #plane-count {
-    position: absolute; top: 32px; right: 20px;
-    background: #000a; border-radius: 12px; padding: 6px 12px;
-    color: #f0d080; font-size: 11px; font-weight: 600;
-  }
 </style>
 </head>
 <body>
 
+<!-- ── Landing ─────────────────────────────────────────────────────────────── -->
 <div id="landing">
   <div class="landing-icon">🪟</div>
   <div class="landing-title">AR Tile Visualizer</div>
-  <div class="landing-sub">Tiles anchored on real floors & walls</div>
+  <div class="landing-sub">Tiles anchored on real floors &amp; walls</div>
   <button id="start-btn" onclick="startAR()">START AR</button>
   <p class="note">Scan your floor or walls — tiles auto-spread across detected surfaces. Works on floors AND walls.</p>
 </div>
@@ -146,36 +168,52 @@
 
 <div id="canvas-container"></div>
 
+<!-- ── HUD ─────────────────────────────────────────────────────────────────── -->
 <div id="hud">
   <div id="scan-ring"></div>
   <div id="lock-badge">⬤ TILES LOCKED</div>
   <div id="status">Scanning for surfaces…</div>
   <div id="plane-count"></div>
 
+  <!-- Surface-mode toggle -->
   <div id="surface-mode">
     <button class="mode-btn active" data-mode="both">Both</button>
     <button class="mode-btn" data-mode="floor">Floor</button>
     <button class="mode-btn" data-mode="wall">Wall</button>
   </div>
 
+  <!-- Tile colour picker -->
   <div id="tile-picker">
     <div class="tile-thumb active" data-idx="0" style="background:linear-gradient(135deg,#c8922a,#f0d080,#a06010)"></div>
-    <div class="tile-thumb" data-idx="1" style="background:linear-gradient(135deg,#ccc,#e8e8e8,#aaa)"></div>
-    <div class="tile-thumb" data-idx="2" style="background:linear-gradient(135deg,#1a1a1a,#333,#222)"></div>
-    <div class="tile-thumb" data-idx="3" style="background:linear-gradient(135deg,#c87941,#e8a060,#a05020)"></div>
-    <div class="tile-thumb" data-idx="4" style="background:linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a)"></div>
+    <div class="tile-thumb"        data-idx="1" style="background:linear-gradient(135deg,#ccc,#e8e8e8,#aaa)"></div>
+    <div class="tile-thumb"        data-idx="2" style="background:linear-gradient(135deg,#1a1a1a,#333,#222)"></div>
+    <div class="tile-thumb"        data-idx="3" style="background:linear-gradient(135deg,#c87941,#e8a060,#a05020)"></div>
+    <div class="tile-thumb"        data-idx="4" style="background:linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a)"></div>
   </div>
 
+  <!-- Right: tile size -->
   <div id="size-control">
-    <span id="size-label">Size</span>
+    <span class="slider-label">Size</span>
     <input type="range" id="tile-size-slider" min="1" max="10" value="6" step="1"/>
   </div>
 
+  <!-- Left: opacity / blend -->
   <div id="opacity-control">
-    <span id="opacity-label">Blend</span>
+    <span class="slider-label">Blend</span>
     <input type="range" id="opacity-slider" min="20" max="100" value="85" step="5"/>
   </div>
 
+  <!--
+    Height fine-tune slider (−10 mm to +10 mm, default 0).
+    Use this if tiles appear very slightly above or below the real floor —
+    a value of 0 should be exact on most devices.
+  -->
+  <div id="height-control">
+    <span class="slider-label">Height</span>
+    <input type="range" id="height-slider" min="-10" max="10" value="0" step="1"/>
+  </div>
+
+  <!-- Bottom controls -->
   <div id="controls">
     <button class="ctrl-btn" onclick="resetAR()">↺ Reset</button>
     <button class="ctrl-btn" id="lock-btn" onclick="toggleLock()">🔒 Lock</button>
