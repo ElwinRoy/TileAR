@@ -1,190 +1,558 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-<title>AR Tile Visualizer</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
-  #canvas-container { position: fixed; inset: 0; }
-  canvas { display: block; width: 100% !important; height: 100% !important; }
+import * as THREE from 'three';
 
-  #landing {
-    position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    background: linear-gradient(160deg, #0a0a0a 0%, #1a1008 50%, #0a0a0a 100%);
-    z-index: 100; gap: 0;
+// ─── State ────────────────────────────────────────────────────────────────
+let renderer, scene, camera, gl;
+let xrSession = null;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+let reticle;
+let glBinding = null;
+let depthOccluder = null;
+
+let isLocked = false;
+let currentTileIdx = 0;
+let tileOpacity = 0.85;
+let surfaceMode = 'both';
+
+const trackedPlanes = new Map();
+let anchorMesh = null;
+let hasPlaneDetection = false;
+let firstHitPlaced = false;
+
+// ─── Tile definitions ─────────────────────────────────────────────────────
+const TILES = [
+  { name:'Gold',       base:'#c8a84b', grout:'#6b4c1e', sheen:0.30 },
+  { name:'Marble',     base:'#ddd8d0', grout:'#9a9590', sheen:0.50 },
+  { name:'Charcoal',   base:'#2e2e2e', grout:'#111111', sheen:0.18 },
+  { name:'Terracotta', base:'#c97b4b', grout:'#7a3e1e', sheen:0.14 },
+  { name:'Green',      base:'#3d7a52', grout:'#1a3d28', sheen:0.10 },
+];
+
+const cl       = v => Math.max(0, Math.min(255, v));
+const hexToRgb = h => { const n = parseInt(h.replace('#',''), 16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+const lighten  = (h, a) => { const [r,g,b] = hexToRgb(h); return rgbToHex(cl(r+255*a), cl(g+255*a), cl(b+255*a)); };
+const darken   = (h, a) => lighten(h, -a);
+
+function rRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function addGrain(ctx, x, y, w, h, amt) {
+  const id = ctx.getImageData(x,y,w,h), d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random()-0.5)*255*amt;
+    d[i]=cl(d[i]+n); d[i+1]=cl(d[i+1]+n); d[i+2]=cl(d[i+2]+n);
   }
-  .landing-icon { font-size: 72px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-  .landing-title { font-size: 28px; font-weight: 700; color: #f0d080; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-  .landing-sub { font-size: 14px; color: #8a7a5a; margin-bottom: 48px; letter-spacing: 1px; }
-  #start-btn {
-    background: linear-gradient(135deg, #c8922a, #f0d080, #c8922a); background-size: 200% 200%;
-    color: #1a0e00; border: none; border-radius: 50px; padding: 18px 48px;
-    font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-    cursor: pointer; animation: shimmer 3s linear infinite; box-shadow: 0 8px 32px #c8922a55;
+  ctx.putImageData(id, x, y);
+}
+
+function makeTileTexture(idx) {
+  const SZ = 512, GROUT = 6, N = 2;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = SZ;
+  const ctx = cv.getContext('2d');
+  const t = TILES[idx];
+  const tw = SZ / N;
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const x = col*tw + GROUT/2, y = row*tw + GROUT/2;
+      const w = tw - GROUT, h = tw - GROUT;
+      const grd = ctx.createLinearGradient(x,y,x+w,y+h);
+      grd.addColorStop(0, lighten(t.base, 0.12));
+      grd.addColorStop(0.5, t.base);
+      grd.addColorStop(1, darken(t.base, 0.10));
+      ctx.fillStyle = grd;
+      rRect(ctx,x,y,w,h,4); ctx.fill();
+      addGrain(ctx,x,y,w,h,0.04);
+      const hi = ctx.createLinearGradient(x,y,x+w*0.6,y+h*0.6);
+      hi.addColorStop(0, `rgba(255,255,255,${t.sheen})`);
+      hi.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hi;
+      rRect(ctx,x,y,w,h,4); ctx.fill();
+    }
   }
-  @keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-  .note { margin-top: 24px; font-size: 11px; color: #555; text-align: center; line-height: 1.6; max-width: 280px; }
+  ctx.fillStyle = t.grout;
+  for (let i = 0; i <= N; i++) {
+    ctx.fillRect(0, i*tw - GROUT/2, SZ, GROUT);
+    ctx.fillRect(i*tw - GROUT/2, 0, GROUT, SZ);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
 
-  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
+function getTileRepeatSize() {
+  const slider = document.getElementById('tile-size-slider');
+  const tileM = parseFloat(slider.value) * 0.05 + 0.10;
+  return tileM * 2;
+}
 
-  #status {
-    position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
-    background: #000000cc; backdrop-filter: blur(12px);
-    border: 1px solid #f0d08033; border-radius: 24px;
-    padding: 10px 20px; color: #f0d080; font-size: 13px;
-    font-weight: 600; letter-spacing: .5px; text-align: center; white-space: nowrap;
-    transition: opacity .4s;
+// ─── Depth Occlusion (WebXR Depth API) ────────────────────────────────────
+// Writes real-world depth to z-buffer so tiles behind objects get occluded
+function initDepthOcclusion() {
+  if (!gl) return;
+  const isWGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+  if (!isWGL2) return;
+
+  const vsrc = `#version 300 es
+    in vec2 aPos;
+    out vec2 vUv;
+    void main() { vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }`;
+  const fsrc = `#version 300 es
+    precision highp float;
+    uniform sampler2D uDepthTex;
+    uniform float uRawToMeters;
+    in vec2 vUv;
+    out vec4 outColor;
+    void main() {
+      float rawDepth = texture(uDepthTex, vUv).r;
+      float depthM = rawDepth * uRawToMeters;
+      if (depthM <= 0.0 || depthM > 20.0) discard;
+      float near = 0.01, far = 100.0;
+      gl_FragDepth = (far * (depthM - near)) / (depthM * (far - near));
+      outColor = vec4(0.0);
+    }`;
+
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, vsrc); gl.compileShader(vs);
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, fsrc); gl.compileShader(fs);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('Depth shader fail'); return; }
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  const loc = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+
+  depthOccluder = {
+    prog, vao,
+    uDepthTex: gl.getUniformLocation(prog, 'uDepthTex'),
+    uRawToMeters: gl.getUniformLocation(prog, 'uRawToMeters'),
+  };
+}
+
+function renderDepthOcclusionPass(depthTexture, rawToMeters) {
+  if (!depthOccluder || !depthTexture) return;
+  gl.useProgram(depthOccluder.prog);
+  gl.bindVertexArray(depthOccluder.vao);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+  gl.uniform1i(depthOccluder.uDepthTex, 0);
+  gl.uniform1f(depthOccluder.uRawToMeters, rawToMeters);
+  // Write depth only, no color
+  gl.colorMask(false, false, false, false);
+  gl.depthMask(true);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.ALWAYS);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // Restore
+  gl.colorMask(true, true, true, true);
+  gl.depthFunc(gl.LEQUAL);
+  gl.bindVertexArray(null);
+}
+
+// ─── Plane geometry from XRPlane polygon ──────────────────────────────────
+function createPlaneGeometry(polygon) {
+  if (!polygon || polygon.length < 3) return null;
+  const shape = new THREE.Shape();
+  shape.moveTo(polygon[0].x, polygon[0].z);
+  for (let i = 1; i < polygon.length; i++) shape.lineTo(polygon[i].x, polygon[i].z);
+  const geometry = new THREE.ShapeGeometry(shape);
+  geometry.rotateX(-Math.PI / 2);
+  const repeatSize = getTileRepeatSize();
+  const pos = geometry.attributes.position;
+  const uvs = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uvs[i * 2] = pos.getX(i) / repeatSize;
+    uvs[i * 2 + 1] = pos.getZ(i) / repeatSize;
+  }
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  return geometry;
+}
+
+function createTileMaterial() {
+  const tex = makeTileTexture(currentTileIdx);
+  return new THREE.MeshBasicMaterial({
+    map: tex, transparent: true, opacity: tileOpacity,
+    depthWrite: false, depthTest: true,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+    side: THREE.DoubleSide,
+  });
+}
+
+function createPlaneTileMesh(plane, poseMatrix) {
+  const geo = createPlaneGeometry(plane.polygon);
+  if (!geo) return null;
+  const mat = createTileMaterial();
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.fromArray(poseMatrix);
+  mesh.renderOrder = 1;
+  mat.opacity = 0;
+  return mesh;
+}
+
+function updatePlaneMeshGeometry(mesh, polygon) {
+  const newGeo = createPlaneGeometry(polygon);
+  if (!newGeo) return;
+  mesh.geometry.dispose();
+  mesh.geometry = newGeo;
+}
+
+function rebuildAllPlaneMeshes() {
+  for (const [plane, data] of trackedPlanes) {
+    const oldMesh = data.mesh;
+    const geo = createPlaneGeometry(plane.polygon);
+    if (!geo) continue;
+    const mat = createTileMaterial();
+    mat.opacity = tileOpacity;
+    const newMesh = new THREE.Mesh(geo, mat);
+    newMesh.matrixAutoUpdate = false;
+    newMesh.matrix.copy(oldMesh.matrix);
+    newMesh.renderOrder = 1;
+    scene.remove(oldMesh);
+    oldMesh.geometry.dispose();
+    if (oldMesh.material.map) oldMesh.material.map.dispose();
+    oldMesh.material.dispose();
+    scene.add(newMesh);
+    data.mesh = newMesh;
+  }
+  if (anchorMesh) rebuildAnchorMesh();
+}
+
+function createAnchorMesh(poseMatrix) {
+  const sizeM = parseFloat(document.getElementById('tile-size-slider').value) * 0.55;
+  const tex = makeTileTexture(currentTileIdx);
+  const rep = sizeM / getTileRepeatSize();
+  tex.repeat.set(rep, rep);
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: true, opacity: tileOpacity,
+    depthWrite: false, depthTest: true,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(sizeM, sizeM), mat);
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.fromArray(poseMatrix);
+  mesh.renderOrder = 1;
+  return mesh;
+}
+
+function rebuildAnchorMesh() {
+  if (!anchorMesh) return;
+  const saved = anchorMesh.matrix.clone();
+  scene.remove(anchorMesh);
+  anchorMesh.geometry.dispose();
+  if (anchorMesh.material.map) anchorMesh.material.map.dispose();
+  anchorMesh.material.dispose();
+  anchorMesh = createAnchorMesh(saved.elements);
+  scene.add(anchorMesh);
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────
+function toggleLock() {
+  isLocked = !isLocked;
+  const btn = document.getElementById('lock-btn');
+  if (isLocked) {
+    btn.textContent = '🔓 Unlock'; btn.classList.add('active-lock');
+    document.getElementById('lock-badge').style.display = 'block';
+    setStatus('Tiles locked — walk around to inspect!');
+  } else {
+    btn.textContent = '🔒 Lock'; btn.classList.remove('active-lock');
+    document.getElementById('lock-badge').style.display = 'none';
+    setStatus('Scanning for surfaces…');
+  }
+}
+window.toggleLock = toggleLock;
+
+function resetAR() {
+  for (const [, data] of trackedPlanes) {
+    scene.remove(data.mesh); data.mesh.geometry.dispose();
+    if (data.mesh.material.map) data.mesh.material.map.dispose();
+    data.mesh.material.dispose();
+  }
+  trackedPlanes.clear();
+  if (anchorMesh) {
+    scene.remove(anchorMesh); anchorMesh.geometry.dispose();
+    if (anchorMesh.material.map) anchorMesh.material.map.dispose();
+    anchorMesh.material.dispose(); anchorMesh = null;
+  }
+  firstHitPlaced = false; isLocked = false;
+  document.getElementById('lock-btn').textContent = '🔒 Lock';
+  document.getElementById('lock-btn').classList.remove('active-lock');
+  document.getElementById('scan-ring').style.opacity = '1';
+  document.getElementById('lock-badge').style.display = 'none';
+  reticle.visible = false;
+  setStatus('Scanning for surfaces…');
+  updatePlaneCount(0, 0);
+}
+window.resetAR = resetAR;
+
+// ─── Three.js + Depth Init ───────────────────────────────────────────────
+function initThree() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera();
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  renderer.setClearColor(0x000000, 0);
+  renderer.sortObjects = true;
+  // Don't auto-clear depth so our occlusion pass survives into tile rendering
+  renderer.autoClearDepth = false;
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  gl = renderer.getContext();
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+  const rGeo = new THREE.RingGeometry(0.05, 0.08, 36);
+  rGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  reticle = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({
+    color: 0xf0d080, side: THREE.DoubleSide,
+    depthWrite: false, transparent: true, opacity: 0.85,
+  }));
+  reticle.matrixAutoUpdate = false;
+  reticle.visible = false;
+  scene.add(reticle);
+
+  // Init depth occlusion shader
+  initDepthOcclusion();
+}
+
+// ─── AR session ───────────────────────────────────────────────────────────
+async function startAR() {
+  if (!navigator.xr) { showNotSupported(); return; }
+  const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+  if (!supported) { showNotSupported(); return; }
+
+  document.getElementById('landing').style.display = 'none';
+  initThree();
+
+  // Request depth-sensing for object occlusion
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay', 'plane-detection', 'local-floor', 'depth-sensing'],
+      domOverlay: { root: document.getElementById('hud') },
+      depthSensing: {
+        usagePreference: ['gpu-optimized', 'cpu-optimized'],
+        dataFormatPreference: ['luminance-alpha', 'float32'],
+      },
+    });
+  } catch (e) {
+    try {
+      xrSession = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay', 'plane-detection', 'local-floor'],
+        domOverlay: { root: document.getElementById('hud') },
+      });
+    } catch (e2) { showNotSupported(); return; }
   }
 
-  #scan-ring {
-    position: absolute; top: 50%; left: 50%;
-    width: 72px; height: 72px;
-    border: 2px solid transparent;
-    border-top-color: #f0d080;
-    border-right-color: #f0d08044;
-    border-radius: 50%;
-    transform: translate(-50%,-50%);
-    animation: spin 1.2s linear infinite;
-    transition: opacity .5s;
+  // Create WebGL binding for depth texture access
+  try { glBinding = new XRWebGLBinding(xrSession, gl); } catch (e) { glBinding = null; }
+
+  renderer.xr.setReferenceSpaceType('local-floor');
+  await renderer.xr.setSession(xrSession);
+
+  xrSession.addEventListener('end', () => {
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('landing').style.display = 'flex';
+    hitTestSource = null; hitTestSourceRequested = false;
+    trackedPlanes.clear();
+    anchorMesh = null; firstHitPlaced = false;
+    isLocked = false; hasPlaneDetection = false; glBinding = null;
+  });
+
+  document.getElementById('hud').style.display = 'block';
+  renderer.setAnimationLoop(onXRFrame);
+  setupUI();
+}
+window.startAR = startAR;
+
+// ─── XR render loop ───────────────────────────────────────────────────────
+function onXRFrame(time, frame) {
+  if (!frame) return;
+  const refSpace = renderer.xr.getReferenceSpace();
+
+  if (!hitTestSourceRequested) {
+    frame.session.requestReferenceSpace('viewer').then(vs => {
+      frame.session.requestHitTestSource({ space: vs })
+        .then(src => { hitTestSource = src; })
+        .catch(() => setStatus('Hit-test not available'));
+    });
+    hitTestSourceRequested = true;
   }
-  @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
-  #lock-badge {
-    position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-    background: #1a5c2acc; border: 1px solid #60d08088;
-    border-radius: 20px; padding: 6px 16px;
-    color: #90f0a0; font-size: 12px; font-weight: 600; letter-spacing: 1px;
-    display: none; white-space: nowrap;
+  // ── DEPTH OCCLUSION PASS ──────────────────────────────────────────────
+  // Writes real-world depth to z-buffer BEFORE tiles render.
+  // Objects on the floor (chairs, shoes, etc.) will occlude the tiles.
+  if (glBinding && depthOccluder) {
+    const viewerPose = frame.getViewerPose(refSpace);
+    if (viewerPose) {
+      for (const view of viewerPose.views) {
+        try {
+          const depthInfo = glBinding.getDepthInformation(view);
+          if (depthInfo && depthInfo.texture) {
+            renderDepthOcclusionPass(depthInfo.texture, depthInfo.rawValueToMeters);
+          }
+        } catch (e) { /* depth not available this frame */ }
+      }
+    }
+    // Reset Three.js GL state after raw WebGL calls
+    renderer.state.reset();
   }
 
-  #surface-mode {
-    position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 4px; pointer-events: all;
-    background: #000000aa; backdrop-filter: blur(10px);
-    border-radius: 20px; padding: 4px; border: 1px solid #ffffff15;
+  // ── PLANE DETECTION ───────────────────────────────────────────────────
+  if (frame.detectedPlanes && frame.detectedPlanes.size > 0) {
+    hasPlaneDetection = true;
+    const currentPlanes = new Set(frame.detectedPlanes);
+
+    for (const [plane, data] of trackedPlanes) {
+      if (!currentPlanes.has(plane)) {
+        scene.remove(data.mesh); data.mesh.geometry.dispose();
+        if (data.mesh.material.map) data.mesh.material.map.dispose();
+        data.mesh.material.dispose(); trackedPlanes.delete(plane);
+      }
+    }
+
+    if (!isLocked) {
+      let floorCount = 0, wallCount = 0;
+
+      for (const plane of frame.detectedPlanes) {
+        const isHoriz = plane.orientation === 'horizontal';
+        const isVert = plane.orientation === 'vertical';
+        if (surfaceMode === 'floor' && !isHoriz) continue;
+        if (surfaceMode === 'wall' && !isVert) continue;
+        if (!isHoriz && !isVert) continue;
+        if (isHoriz) floorCount++; else wallCount++;
+
+        const pose = frame.getPose(plane.planeSpace, refSpace);
+        if (!pose) continue;
+
+        if (trackedPlanes.has(plane)) {
+          const data = trackedPlanes.get(plane);
+          data.mesh.matrix.fromArray(pose.transform.matrix);
+          const changeTime = plane.lastChangedTime || 0;
+          if (changeTime > data.lastUpdate) {
+            updatePlaneMeshGeometry(data.mesh, plane.polygon);
+            data.lastUpdate = changeTime;
+          }
+          if (data.mesh.material.opacity < tileOpacity) {
+            data.mesh.material.opacity = Math.min(tileOpacity, data.mesh.material.opacity + 0.02);
+          }
+        } else {
+          const mesh = createPlaneTileMesh(plane, pose.transform.matrix);
+          if (!mesh) continue;
+          scene.add(mesh);
+          trackedPlanes.set(plane, {
+            mesh, lastUpdate: plane.lastChangedTime || 0,
+            type: isVert ? 'wall' : 'floor',
+          });
+        }
+      }
+      updatePlaneCount(floorCount, wallCount);
+      if (trackedPlanes.size > 0) {
+        document.getElementById('scan-ring').style.opacity = '0';
+        reticle.visible = false;
+        setStatus(`✨ Tiling ${trackedPlanes.size} surface${trackedPlanes.size > 1 ? 's' : ''}`);
+      }
+    }
   }
-  .mode-btn {
-    background: transparent; border: none; border-radius: 16px;
-    padding: 6px 14px; color: #999; font-size: 11px; font-weight: 600;
-    letter-spacing: .5px; cursor: pointer; transition: all .2s;
+
+  // ── HIT-TEST FALLBACK ─────────────────────────────────────────────────
+  if (hitTestSource && refSpace) {
+    const hits = frame.getHitTestResults(hitTestSource);
+    if (hits.length > 0) {
+      const pose = hits[0].getPose(refSpace);
+      if (pose) {
+        if (!hasPlaneDetection) {
+          if (!firstHitPlaced) {
+            reticle.visible = true;
+            reticle.matrix.fromArray(Array.from(pose.transform.matrix));
+            setStatus('Surface found — tap to place tiles');
+          } else { reticle.visible = false; }
+        } else if (trackedPlanes.size === 0) {
+          reticle.visible = true;
+          reticle.matrix.fromArray(Array.from(pose.transform.matrix));
+          setStatus('Scanning for surfaces…');
+        }
+      }
+    } else if (!hasPlaneDetection && !firstHitPlaced) {
+      reticle.visible = false;
+      setStatus('Move phone slowly over surfaces…');
+    }
   }
-  .mode-btn.active { background: #f0d08030; color: #f0d080; }
 
-  #tile-picker {
-    position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 12px; pointer-events: all;
-  }
-  .tile-thumb {
-    width: 52px; height: 52px; border-radius: 10px; border: 2px solid #ffffff33;
-    cursor: pointer; transition: border-color .2s, transform .2s;
-  }
-  .tile-thumb.active { border-color: #f0d080; transform: scale(1.15); }
+  renderer.render(scene, camera);
+}
 
-  #size-control {
-    position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
-  }
-  #size-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+function onTapPlace() {
+  if (hasPlaneDetection || isLocked || firstHitPlaced || !reticle.visible) return;
+  anchorMesh = createAnchorMesh(reticle.matrix.clone().elements);
+  scene.add(anchorMesh); firstHitPlaced = true;
+  document.getElementById('scan-ring').style.opacity = '0';
+  reticle.visible = false;
+  setStatus('✨ Tile placed — anchored to surface!');
+}
 
-  #opacity-control {
-    position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: all;
-  }
-  #opacity-label { color: #f0d08099; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+// ─── UI ───────────────────────────────────────────────────────────────────
+function setupUI() {
+  document.querySelectorAll('.tile-thumb').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tile-thumb').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      currentTileIdx = parseInt(el.dataset.idx);
+      rebuildAllPlaneMeshes();
+    });
+  });
+  document.querySelectorAll('.mode-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      surfaceMode = el.dataset.mode;
+      for (const [plane, data] of trackedPlanes) {
+        const keep = surfaceMode === 'both' ||
+          (surfaceMode === 'floor' && data.type === 'floor') ||
+          (surfaceMode === 'wall' && data.type === 'wall');
+        if (!keep) {
+          scene.remove(data.mesh); data.mesh.geometry.dispose();
+          if (data.mesh.material.map) data.mesh.material.map.dispose();
+          data.mesh.material.dispose(); trackedPlanes.delete(plane);
+        }
+      }
+    });
+  });
+  document.getElementById('tile-size-slider').addEventListener('input', () => rebuildAllPlaneMeshes());
+  document.getElementById('opacity-slider').addEventListener('input', e => {
+    tileOpacity = parseFloat(e.target.value) / 100;
+    for (const [, data] of trackedPlanes) data.mesh.material.opacity = tileOpacity;
+    if (anchorMesh) anchorMesh.material.opacity = tileOpacity;
+  });
+  document.getElementById('hud').addEventListener('click', onTapPlace);
+}
 
-  input[type=range] {
-    -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
-    width: 6px; height: 140px; background: #ffffff22; border-radius: 3px; outline: none; cursor: pointer;
-  }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #f0d080; }
-
-  #controls {
-    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 16px; pointer-events: all;
-  }
-  .ctrl-btn {
-    background: #000000cc; backdrop-filter: blur(12px); border: 1px solid #ffffff22;
-    border-radius: 50px; padding: 14px 28px; color: #fff; font-size: 13px;
-    font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap;
-    transition: background .2s, border-color .2s, color .2s;
-  }
-  .ctrl-btn.active-lock  { background: #1a7a2acc; border-color: #60d080aa; color: #e0ffec; }
-
-  #not-supported {
-    position: fixed; inset: 0; display: none; flex-direction: column;
-    align-items: center; justify-content: center; background: #0a0a0a;
-    color: #fff; z-index: 200; gap: 16px; text-align: center; padding: 32px;
-  }
-  #not-supported h2 { color: #f0d080; font-size: 22px; }
-  #not-supported p  { color: #888; font-size: 14px; line-height: 1.6; max-width: 300px; }
-  #plane-count {
-    position: absolute; top: 32px; right: 20px;
-    background: #000a; border-radius: 12px; padding: 6px 12px;
-    color: #f0d080; font-size: 11px; font-weight: 600;
-  }
-</style>
-</head>
-<body>
-
-<div id="landing">
-  <div class="landing-icon">🪟</div>
-  <div class="landing-title">AR Tile Visualizer</div>
-  <div class="landing-sub">Tiles anchored on real floors & walls</div>
-  <button id="start-btn" onclick="startAR()">START AR</button>
-  <p class="note">Scan your floor or walls — tiles auto-spread across detected surfaces. Works on floors AND walls.</p>
-</div>
-
-<div id="not-supported">
-  <h2>WebXR Not Available</h2>
-  <p>Your browser doesn't support WebXR AR.</p>
-  <ul><li>📱 Chrome on Android</li><li>🔗 Must be HTTPS</li></ul>
-</div>
-
-<div id="canvas-container"></div>
-
-<div id="hud">
-  <div id="scan-ring"></div>
-  <div id="lock-badge">⬤ TILES LOCKED</div>
-  <div id="status">Scanning for surfaces…</div>
-  <div id="plane-count"></div>
-
-  <div id="surface-mode">
-    <button class="mode-btn active" data-mode="both">Both</button>
-    <button class="mode-btn" data-mode="floor">Floor</button>
-    <button class="mode-btn" data-mode="wall">Wall</button>
-  </div>
-
-  <div id="tile-picker">
-    <div class="tile-thumb active" data-idx="0" style="background:linear-gradient(135deg,#c8922a,#f0d080,#a06010)"></div>
-    <div class="tile-thumb" data-idx="1" style="background:linear-gradient(135deg,#ccc,#e8e8e8,#aaa)"></div>
-    <div class="tile-thumb" data-idx="2" style="background:linear-gradient(135deg,#1a1a1a,#333,#222)"></div>
-    <div class="tile-thumb" data-idx="3" style="background:linear-gradient(135deg,#c87941,#e8a060,#a05020)"></div>
-    <div class="tile-thumb" data-idx="4" style="background:linear-gradient(135deg,#2d6a2d,#4a8a4a,#1a4a1a)"></div>
-  </div>
-
-  <div id="size-control">
-    <span id="size-label">Size</span>
-    <input type="range" id="tile-size-slider" min="1" max="10" value="6" step="1"/>
-  </div>
-
-  <div id="opacity-control">
-    <span id="opacity-label">Blend</span>
-    <input type="range" id="opacity-slider" min="20" max="100" value="85" step="5"/>
-  </div>
-
-  <div id="controls">
-    <button class="ctrl-btn" onclick="resetAR()">↺ Reset</button>
-    <button class="ctrl-btn" id="lock-btn" onclick="toggleLock()">🔒 Lock</button>
-  </div>
-</div>
-
-<script type="importmap">
-{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
-</script>
-<script src="app.js" type="module"></script>
-</body>
-</html>
+function setStatus(msg) { const el = document.getElementById('status'); if (el) el.textContent = msg; }
+function updatePlaneCount(f, w) {
+  const el = document.getElementById('plane-count'); if (!el) return;
+  if (f + w === 0) { el.textContent = ''; return; }
+  const p = []; if (f > 0) p.push(`${f} floor`); if (w > 0) p.push(`${w} wall`);
+  el.textContent = p.join(' · ');
+}
+function showNotSupported() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('not-supported').style.display = 'flex';
+}
+window.addEventListener('resize', () => { if (renderer) renderer.setSize(window.innerWidth, window.innerHeight); });
