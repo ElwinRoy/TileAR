@@ -311,8 +311,6 @@ function initThree() {
   renderer.xr.enabled = true;
   renderer.setClearColor(0x000000, 0);
   renderer.sortObjects = true;
-  // Don't auto-clear depth so our occlusion pass survives into tile rendering
-  renderer.autoClearDepth = false;
   document.getElementById('canvas-container').appendChild(renderer.domElement);
   gl = renderer.getContext();
 
@@ -399,6 +397,7 @@ function onXRFrame(time, frame) {
   // ── DEPTH OCCLUSION PASS ──────────────────────────────────────────────
   // Writes real-world depth to z-buffer BEFORE tiles render.
   // Objects on the floor (chairs, shoes, etc.) will occlude the tiles.
+  let depthPassRan = false;
   if (glBinding && depthOccluder) {
     const viewerPose = frame.getViewerPose(refSpace);
     if (viewerPose) {
@@ -407,6 +406,7 @@ function onXRFrame(time, frame) {
           const depthInfo = glBinding.getDepthInformation(view);
           if (depthInfo && depthInfo.texture) {
             renderDepthOcclusionPass(depthInfo.texture, depthInfo.rawValueToMeters);
+            depthPassRan = true;
           }
         } catch (e) { /* depth not available this frame */ }
       }
@@ -496,7 +496,14 @@ function onXRFrame(time, frame) {
     }
   }
 
-  renderer.render(scene, camera);
+  // Only skip depth clear when depth occlusion pass actually wrote depth values
+  if (depthPassRan) {
+    renderer.autoClearDepth = false;
+    renderer.render(scene, camera);
+    renderer.autoClearDepth = true;
+  } else {
+    renderer.render(scene, camera);
+  }
 }
 
 function onTapPlace() {
